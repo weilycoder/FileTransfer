@@ -7,12 +7,18 @@ from .client import *
 
 class UI(tk.Tk):
     def __init__(
-        self, title: str = "File Transfer", width: int = 640, height: int = 480
+        self,
+        title: str = "File Transfer",
+        width: int = 640,
+        height: int = 480,
+        *,
+        host: str = "localhost",
+        post: int = 8080,
     ):
         super().__init__()
         self.title(title)
         self.geometry(f"{width}x{height}")
-        self.client_socket = Client()
+        self.client_socket = Client(host, post)
         self.initUI()
 
     def initUI(self):
@@ -38,8 +44,8 @@ class UI(tk.Tk):
         )
         self.testB = ttk.Button(self, text="Test", cursor="hand2", command=self.test)
 
-        self.host = tk.StringVar(self, value="localhost")
-        self.post = tk.StringVar(self, value="8080")
+        self.host = tk.StringVar(self, value=self.client_socket.address[0])
+        self.post = tk.StringVar(self, value=self.client_socket.address[1])
         self.token = tk.StringVar(self, value="")
 
         self.hostE = ttk.Entry(self, textvariable=self.host)
