@@ -16,7 +16,7 @@ class DFile:
         return self.temp is None
 
     def check(self, passwd: bytes = b""):
-        return hashlib.sha256(passwd).digest() == self.passwd
+        return self.check() or hashlib.sha256(passwd).digest() == self.passwd
 
     def close(self):
         if self.temp is None:

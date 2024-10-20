@@ -7,8 +7,7 @@ from typing import *
 
 HEADSIZE = 8
 BUFSIZE = 65536
-OK = b"Ok"
-NEXT = b"Next"
+OK = b"Ok."
 
 
 def try_recv(client: socket.socket, bufsize: int):
@@ -26,6 +25,7 @@ def try_send(client: socket.socket, msg: bytes):
     else:
         return 0
 
+
 def recvs(client: socket.socket):
     data = bytearray()
     while True:
@@ -34,3 +34,7 @@ def recvs(client: socket.socket):
             break
         data.extend(d0)
     return data
+
+
+def getFilename(path: str):
+    return path.replace("\\", "/").split("/")[-1]

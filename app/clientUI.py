@@ -1,5 +1,6 @@
+from base64 import b64decode, b64encode
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import ttk, messagebox, filedialog
 
 from .client import *
 
@@ -15,15 +16,27 @@ class UI(tk.Tk):
         self.initUI()
 
     def initUI(self):
+        self.data = tk.StringVar(self)
+
         self.ytableScrollbar = ttk.Scrollbar(self, cursor="hand2")
-        self.table = tk.Listbox(self, yscrollcommand=self.ytableScrollbar)
+        self.table = tk.Listbox(
+            self, yscrollcommand=self.ytableScrollbar, listvariable=self.data
+        )
         self.ytableScrollbar.config(command=self.table.yview)
 
-        self.updateB = ttk.Button(self, text="Update", cursor="hand2")
-        self.pushB = ttk.Button(self, text="Push", cursor="hand2")
-        self.deleteB = ttk.Button(self, text="Delete", cursor="hand2")
-        self.installB = ttk.Button(self, text="Install", cursor="hand2")
-        self.testB = ttk.Button(self, text="Test", cursor="hand2")
+        self.updateB = ttk.Button(
+            self, text="Update", cursor="hand2", command=self.updateList
+        )
+        self.pushB = ttk.Button(
+            self, text="Push", cursor="hand2", command=self.pushFile
+        )
+        self.deleteB = ttk.Button(
+            self, text="Delete", cursor="hand2", command=self.eraseFile
+        )
+        self.installB = ttk.Button(
+            self, text="Install", cursor="hand2", command=self.installFile
+        )
+        self.testB = ttk.Button(self, text="Test", cursor="hand2", command=self.test)
 
         self.host = tk.StringVar(self, value="localhost")
         self.post = tk.StringVar(self, value="8080")
@@ -50,6 +63,77 @@ class UI(tk.Tk):
         self.tokenE.place(relx=0.47, rely=0.885, relwidth=0.4, relheight=0.05)
 
         self.mainloop()
+
+    def getSelFile(self):
+        sel = self.table.curselection()
+        assert sel, "No item selected."
+        assert len(sel) == 1, "Too many items selected."
+        return str(self.table.get((sel[0])))
+
+    def test(self):
+        try:
+            host = self.host.get()
+            post = int(self.post.get())
+            self.client_socket = Client(host, post)
+            if self.client_socket.test():
+                messagebox.showinfo(self.title(), "Test Ok.")
+            else:
+                messagebox.showwarning(self.title(), "Test Failed.")
+            self.updateList()
+        except Exception as err:
+            messagebox.showwarning(self.title(), str(err))
+
+    def updateList(self):
+        try:
+            self.update()
+            self.data.set(self.client_socket.list())
+            self.table.selection_clear(0, self.table.size() - 1)
+        except Exception as err:
+            messagebox.showwarning(self.title(), str(err))
+
+    def pushFile(self):
+        try:
+            passwd = self.token.get()
+            fn = filedialog.askopenfilename(title=self.title())
+            if not fn:
+                return
+            with open(fn, "rb") as f:
+                data = b64encode(f.read()).decode()
+                messagebox.showinfo(
+                    self.title(),
+                    self.client_socket.insert(getFilename(fn), data, passwd),
+                )
+            self.updateList()
+        except Exception as err:
+            messagebox.showwarning(self.title(), str(err))
+
+    def eraseFile(self):
+        try:
+            passwd = self.token.get()
+            item = self.getSelFile()
+            messagebox.showinfo(self.title(), self.client_socket.erase(item, passwd))
+            self.updateList()
+        except Exception as err:
+            messagebox.showwarning(self.title(), str(err))
+
+    def installFile(self):
+        try:
+            passwd = self.token.get()
+            item = self.getSelFile()
+            ret = self.client_socket.get(item, passwd)
+            try:
+                data = b64decode(ret)
+            except:
+                messagebox.showinfo(self.title(), ret)
+            else:
+                fn = filedialog.asksaveasfilename(title=self.title(), initialfile=item)
+                if not fn:
+                    return
+                with open(fn, "wb") as f:
+                    f.write(data)
+                messagebox.showinfo(self.title(), "Install Ok.")
+        except Exception as err:
+            messagebox.showwarning(self.title(), str(err))
 
 
 if __name__ == "__main__":
