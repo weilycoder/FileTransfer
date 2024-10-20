@@ -3,20 +3,32 @@ import hashlib
 import tempfile
 from .utility import *
 
-__all__ = ["Server"]
+
+def checkHash(passwd: bytes, hash: bytes):
+    return hashlib.sha256(passwd).digest() == hash
 
 
 class DFile:
+    super_passwd = b""
+
     def __init__(self, data: bytes, passwd: bytes = b""):
         self.temp = tempfile.TemporaryFile()
         self.temp.write(zlib.compress(data))
         self.passwd = hashlib.sha256(passwd).digest()
 
+    @staticmethod
+    def set_super_passwd(passwd: bytes):
+        DFile.super_passwd = hashlib.sha256(passwd).digest()
+
     def closed(self):
         return self.temp is None
 
     def check(self, passwd: bytes = b""):
-        return self.check() or hashlib.sha256(passwd).digest() == self.passwd
+        return (
+            checkHash(b"", self.passwd)
+            or checkHash(passwd, self.passwd)
+            or checkHash(passwd, DFile.super_passwd)
+        )
 
     def close(self):
         if self.temp is None:
@@ -47,12 +59,16 @@ class Server:
         post: int = 8080,
         backlog: int = 16,
         client_timeout: Union[float, None] = 0.2,
+        *,
+        super_passwd: str = None
     ):
         self.file_table = {}
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server_socket.bind((hostname, post))
         self.server_socket.listen(backlog)
         self.timeout = client_timeout
+        if super_passwd is not None:
+            DFile.set_super_passwd(super_passwd.encode())
 
     def list(self):
         return json.dumps(list(self.file_table))

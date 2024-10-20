@@ -2,7 +2,8 @@ from app.server import *
 
 if __name__ == "__main__":
     try:
-        Server().start()
+        app = Server(super_passwd="super")
+        app.start()
         while True:
             ...
     except KeyboardInterrupt:
