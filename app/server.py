@@ -67,7 +67,7 @@ class Server:
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server_socket.bind((hostname, post))
         self.server_socket.listen(backlog)
-        self.timeout = client_timeout
+        self.timeout = client_timeout if client_timeout is not None else 0.2
         self.logger = logger
         if super_passwd is not None:
             DFile.set_super_passwd(super_passwd.encode())
@@ -159,4 +159,5 @@ class Server:
 
         thread = threading.Thread(target=listener, daemon=True)
         thread.start()
+        self.logger("Start.")
         return thread

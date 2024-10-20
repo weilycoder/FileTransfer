@@ -14,11 +14,13 @@ class UI(tk.Tk):
         *,
         host: str = "localhost",
         post: int = 8080,
+        client_timeout: int = None,
     ):
         super().__init__()
+        self.timeout = client_timeout
         self.title(title)
         self.geometry(f"{width}x{height}")
-        self.client_socket = Client(host, post)
+        self.client_socket = Client(host, post, self.timeout)
         self.initUI()
 
     def initUI(self):
@@ -80,7 +82,7 @@ class UI(tk.Tk):
         try:
             host = self.host.get()
             post = int(self.post.get())
-            self.client_socket = Client(host, post)
+            self.client_socket = Client(host, post, self.timeout)
             if self.client_socket.test():
                 messagebox.showinfo(self.title(), "Test Ok.")
             else:

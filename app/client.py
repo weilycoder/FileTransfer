@@ -9,7 +9,7 @@ class Client:
         client_timeout: Union[float, None] = 4,
     ):
         self.address = (hostname, post)
-        self.timeout = client_timeout
+        self.timeout = client_timeout if client_timeout is not None else 4
 
     def requset(self, data: Dict[str, str]):
         cli = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
