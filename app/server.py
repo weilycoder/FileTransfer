@@ -1,4 +1,3 @@
-import zlib
 import hashlib
 import tempfile
 from .utility import *
@@ -13,7 +12,7 @@ class DFile:
 
     def __init__(self, data: bytes, passwd: bytes = b""):
         self.temp = tempfile.TemporaryFile()
-        self.temp.write(zlib.compress(data))
+        self.temp.write(data)
         self.passwd = hashlib.sha256(passwd).digest()
 
     @staticmethod
@@ -40,7 +39,7 @@ class DFile:
         if self.temp is None:
             return b""
         self.temp.seek(0)
-        return zlib.decompress(self.temp.read())
+        return self.temp.read()
 
 
 class Server:
