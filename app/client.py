@@ -10,7 +10,6 @@ class Client:
     ):
         self.address = (hostname, post)
         self.timeout = client_timeout
-        assert self.test() == OK
 
     def requset(self, data: Dict[str, str]):
         cli = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -23,7 +22,7 @@ class Client:
         cli = self.requset({"type": "test"})
         code = cli.recv(BUFSIZE)
         cli.close()
-        return code
+        return code == OK
 
     def list(self):
         cli = self.requset({"type": "list"})
