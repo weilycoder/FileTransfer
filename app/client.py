@@ -15,7 +15,7 @@ class Client:
         cli = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         cli.settimeout(self.timeout)
         cli.connect(self.address)
-        cli.send(json.dumps(data).encode())
+        cli.sendall(json.dumps(data).encode())
         return cli
 
     def test(self):

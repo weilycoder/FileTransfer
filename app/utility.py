@@ -19,7 +19,7 @@ def try_recv(client: socket.socket, bufsize: int):
 
 def try_send(client: socket.socket, msg: bytes):
     try:
-        client.send(msg)
+        client.sendall(msg)
     except:
         return -1
     else:

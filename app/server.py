@@ -114,7 +114,7 @@ class Server:
             if data["type"] == "test":
                 try_send(client, OK)
             elif data["type"] == "list":
-                client.send(self.list().encode())
+                client.sendall(self.list().encode())
             elif data["type"] == "insert":
                 self.insert(
                     data["file"],
@@ -133,7 +133,7 @@ class Server:
                     data["file"],
                     data["passwd"].encode(),
                 )
-                client.send(data)
+                client.sendall(data)
             else:
                 raise Exception("Can't Decode Data")
         except Exception as err:
