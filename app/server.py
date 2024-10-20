@@ -60,13 +60,15 @@ class Server:
         backlog: int = 16,
         client_timeout: Union[float, None] = 0.2,
         *,
-        super_passwd: str = None
+        super_passwd: str = None,
+        logger: Callable[[str], None] = print
     ):
         self.file_table = {}
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server_socket.bind((hostname, post))
         self.server_socket.listen(backlog)
         self.timeout = client_timeout
+        self.logger = logger
         if super_passwd is not None:
             DFile.set_super_passwd(super_passwd.encode())
 
@@ -106,6 +108,7 @@ class Server:
         return args
 
     def server(self, client: socket.socket):
+        self.logger(str(client.getpeername()))
         client.settimeout(self.timeout)
         try:
             data = Server.check_data(recvs(client).decode())
@@ -135,10 +138,10 @@ class Server:
             else:
                 raise Exception("Can't Decode Data")
         except Exception as err:
-            print(str(err))
+            self.logger(str(err))
             try_send(client, str(err).encode())
         else:
-            print("Ok")
+            self.logger("Ok.")
         finally:
             client.close()
 

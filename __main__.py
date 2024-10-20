@@ -18,7 +18,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     try:
         if args.server:
-            app = Server(super_passwd=args.superpasswd, host=args.host, post=args.post)
+            app = Server(super_passwd=args.superpasswd, hostname=args.host, post=args.post)
             app.start()
             wait()
         else:
