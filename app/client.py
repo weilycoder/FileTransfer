@@ -51,7 +51,7 @@ class Client:
             code = json.loads(code.decode())
             assert code == self.ver_info
             cli.close()
-        except Exception:
+        except AssertionError:
             raise Exception(SETTING_DIFF)
 
     def list(self):
