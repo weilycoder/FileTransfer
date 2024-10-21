@@ -47,17 +47,17 @@ class DFile:
 
 
 class Server:
-    file_table: Dict[str, DFile]
+    file_table: typing.Dict[str, DFile]
 
     def __init__(
         self,
         hostname: str = "localhost",
         post: int = 8080,
         backlog: int = 16,
-        client_timeout: Union[float, None] = SER_TIMEOUT,
+        client_timeout: float = None,
         *,
         super_passwd: str = None,
-        logger: Callable[..., None] = print,
+        logger: typing.Callable[..., None] = print,
     ):
         self.file_table = {}
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

@@ -6,7 +6,7 @@ class Client:
         self,
         hostname: str = "localhost",
         post: int = 8080,
-        client_timeout: Union[float, None] = CLI_TIMEOUT,
+        client_timeout: float = None,
     ):
         self.address = (hostname, post)
         self.timeout = CLI_TIMEOUT if client_timeout is None else client_timeout
@@ -36,7 +36,7 @@ class Client:
         filepath: str,
         passwd: str = "",
         *,
-        callback: Callable[[int, int], None] = lambda sent, size: None
+        callback: typing.Callable[[int, int], None] = lambda sent, size: None
     ):
         file = getFilename(filepath)
         cli = self.requset_head(type="insert", file=file, passwd=passwd)

@@ -3,8 +3,8 @@ import json
 import socket
 import os.path
 import threading
+import typing
 
-from typing import *
 
 VERSION = "0.2.0"
 VERSION_DIFF = "The server and client versions are different."
@@ -77,7 +77,7 @@ def send_file(fd: socket.socket, filename: str):
             yield (sent, size)
 
 
-def recv_file(fd: socket.socket, file: BinaryIO):
+def recv_file(fd: socket.socket, file: typing.BinaryIO):
     size = int(fd.recv(BUFSIZE), 16)
     fd.send(OK)
     sent = 0
