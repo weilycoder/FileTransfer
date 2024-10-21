@@ -74,8 +74,12 @@ class Client:
         if code != OK:
             return code.decode()
         for p, q in self.send_file(cli, filepath):
-            callback(p, q)
+            if callback(p, q):
+                cli.shutdown(socket.SHUT_WR)
+                break
         code = cli.recv(self.bufsize)
+        while code == CONT:
+            code = cli.recv(self.bufsize)
         return code.decode()
 
     def erase(self, file: str, passwd: str = ""):

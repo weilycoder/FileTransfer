@@ -5,6 +5,45 @@ from tkinter import ttk, messagebox, filedialog
 from .client import *
 
 
+class ProgressbarToplevel(tk.Toplevel):
+    def __init__(
+        self,
+        master: tk.Misc = None,
+        title: str = "",
+        width=360,
+        height=50,
+    ):
+        super().__init__(master)
+        self.title(title)
+        self.geometry(f"{width}x{height}")
+        self.attributes("-toolwindow", True)
+        self.resizable(False, False)
+        self.initUI()
+
+    def initUI(self):
+        self.progress_bar = ttk.Progressbar(
+            self, orient="horizontal", mode="determinate"
+        )
+        self.progress_bar.place(relx=0.05, rely=0.25, relwidth=0.9, relheight=0.5)
+        self.letTop()
+
+    def run(self, value: int, maximum: int):
+        self.progress_bar.config(mode="determinate")
+        self.progress_bar["value"] = value
+        self.progress_bar["maximum"] = maximum
+        self.update()
+
+    def start(self):
+        self.progress_bar.config(mode="indeterminate")
+        self.update()
+
+    def letTop(self):
+        self.attributes("-topmost", True)
+        self.update()
+        self.attributes("-topmost", False)
+        self.update()
+
+
 class UI(tk.Tk):
     def __init__(
         self,
@@ -15,14 +54,16 @@ class UI(tk.Tk):
         host: str = "localhost",
         post: int = 8080,
         client_timeout: int = None,
-        bufsize: int = None
+        bufsize: int = None,
     ):
         super().__init__()
         self.timeout = client_timeout
         self.title(title)
         self.geometry(f"{width}x{height}")
         self.bufsize = bufsize
-        self.client_socket = Client(host, post, client_timeout=self.timeout, bufsize=self.bufsize)
+        self.client_socket = Client(
+            host, post, client_timeout=self.timeout, bufsize=self.bufsize
+        )
         self.initUI()
 
     def initUI(self):
@@ -38,13 +79,13 @@ class UI(tk.Tk):
             self, text="Update", cursor="hand2", command=self.updateList
         )
         self.pushB = ttk.Button(
-            self, text="Push", cursor="hand2", command=self.pushFile
+            self, text="Upload", cursor="hand2", command=self.pushFile
         )
         self.deleteB = ttk.Button(
             self, text="Delete", cursor="hand2", command=self.eraseFile
         )
         self.installB = ttk.Button(
-            self, text="Install", cursor="hand2", command=self.installFile
+            self, text="Download", cursor="hand2", command=self.installFile
         )
         self.testB = ttk.Button(self, text="Test", cursor="hand2", command=self.test)
 
@@ -65,11 +106,17 @@ class UI(tk.Tk):
         self.installB.place(relx=0.21, rely=0.88, relwidth=0.15, relheight=0.06)
         self.testB.place(relx=0.78, rely=0.8, relwidth=0.08, relheight=0.06)
 
-        ttk.Label(self, text="Host:").place(relx=0.405, rely=0.81)
+        ttk.Label(self, text="Host:", anchor="e").place(
+            relx=0.465, rely=0.81, relwidth=0.055, relheight=0.05, anchor="ne"
+        )
         self.hostE.place(relx=0.47, rely=0.805, relwidth=0.16, relheight=0.05)
-        ttk.Label(self, text="Post:").place(relx=0.635, rely=0.81)
+        ttk.Label(self, text="Post:", anchor="e").place(
+            relx=0.685, rely=0.81, relwidth=0.055, relheight=0.05, anchor="ne"
+        )
         self.postE.place(relx=0.69, rely=0.805, relwidth=0.08, relheight=0.05)
-        ttk.Label(self, text="Token:").place(relx=0.39, rely=0.89)
+        ttk.Label(self, text="Token:", anchor="e").place(
+            relx=0.465, rely=0.89, relwidth=0.075, relheight=0.05, anchor="ne"
+        )
         self.tokenE.place(relx=0.47, rely=0.885, relwidth=0.4, relheight=0.05)
 
         self.mainloop()
@@ -84,7 +131,9 @@ class UI(tk.Tk):
         try:
             host = self.host.get()
             post = int(self.post.get())
-            self.client_socket = Client(host, post, client_timeout=self.timeout, bufsize=self.bufsize)
+            self.client_socket = Client(
+                host, post, client_timeout=self.timeout, bufsize=self.bufsize
+            )
             self.client_socket.test()
             messagebox.showinfo(self.title(), "Test Ok.")
             self.updateList()
@@ -105,12 +154,24 @@ class UI(tk.Tk):
             fn = filedialog.askopenfilename(title=self.title())
             if not fn:
                 return
+
+            pro = ProgressbarToplevel(self, f"Uploading - {getFilename(fn)}")
+
+            def pushCallBack(sent: int, size: int):
+                if not pro.winfo_exists():
+                    return True
+                pro.run(sent, size)
+                self.update()
+
             messagebox.showinfo(
                 self.title(),
-                self.client_socket.insert(fn, passwd, callback=self.pushCallBack),
+                self.client_socket.insert(fn, passwd, callback=pushCallBack),
             )
+
+            pro.destroy()
         except Exception as err:
             messagebox.showwarning(self.title(), str(err))
+            raise
         else:
             self.updateList()
 
@@ -124,10 +185,18 @@ class UI(tk.Tk):
             messagebox.showwarning(self.title(), str(err))
 
     def installFile(self):
+        def showProBar(toplevel: ProgressbarToplevel):
+            while toplevel.winfo_exists():
+                toplevel.update()
+
         try:
             passwd = self.token.get()
             item = self.getSelFile()
+            toplevel = ProgressbarToplevel(self, f"Download - {item}")
+            threading.Thread(target=showProBar, args=(toplevel,), daemon=True).start()
             ret = self.client_socket.get(item, passwd)
+            if not toplevel.winfo_exists():
+                messagebox.showinfo(self.title(), "Abort.")
             if not ret[-1]:
                 ret.pop()
                 fn = filedialog.asksaveasfilename(title=self.title(), initialfile=item)
@@ -137,14 +206,14 @@ class UI(tk.Tk):
                     f.write(ret)
                 messagebox.showinfo(self.title(), "Install Ok.")
             else:
-                print(ret)
                 messagebox.showinfo(self.title(), ret.decode())
         except Exception as err:
             messagebox.showwarning(self.title(), str(err))
-
-    def pushCallBack(self, sent: int, size: int):
-        print(sent, size)
-        self.update()
+        finally:
+            try:
+                toplevel.destroy()
+            except UnboundLocalError:
+                ...
 
 
 if __name__ == "__main__":
