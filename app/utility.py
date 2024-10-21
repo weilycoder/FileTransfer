@@ -10,8 +10,8 @@ VERSION = "0.2.0"
 VERSION_DIFF = "The server and client versions are different."
 
 CLI_TIMEOUT = 4
-SER_TIMEOUT = 0.2
-BUFSIZE = 1048576
+SER_TIMEOUT = 4
+BUFSIZE = 4194304
 
 OK = b"Ok."
 CONT = "CONT."
