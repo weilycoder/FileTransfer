@@ -28,10 +28,14 @@ class ProgressbarToplevel(tk.Toplevel):
         self.letTop()
 
     def run(self, value: int, maximum: int):
-        self.progress_bar.config(mode="determinate")
-        self.progress_bar["value"] = value
-        self.progress_bar["maximum"] = maximum
-        self.update()
+        try:
+            assert self.winfo_exists()
+            self.progress_bar.config(mode="determinate")
+            self.progress_bar["value"] = value
+            self.progress_bar["maximum"] = maximum
+            self.update()
+        except Exception:
+            return True
 
     def start(self):
         self.progress_bar.config(mode="indeterminate")
@@ -45,6 +49,8 @@ class ProgressbarToplevel(tk.Toplevel):
 
 
 class UI(tk.Tk):
+    toplever_table: typing.Set[ProgressbarToplevel]
+
     def __init__(
         self,
         title: str = "File Transfer",
@@ -61,6 +67,7 @@ class UI(tk.Tk):
         self.title(title)
         self.geometry(f"{width}x{height}")
         self.bufsize = bufsize
+        self.toplever_table = set()
         self.client_socket = Client(
             host, post, client_timeout=self.timeout, bufsize=self.bufsize
         )
@@ -87,7 +94,7 @@ class UI(tk.Tk):
         self.installB = ttk.Button(
             self, text="Download", cursor="hand2", command=self.installFile
         )
-        self.testB = ttk.Button(self, text="Test", cursor="hand2", command=self.test)
+        self.testB = ttk.Button(self, text="Test", cursor="hand2", command=self.testCon)
 
         self.host = tk.StringVar(self, value=self.client_socket.address[0])
         self.post = tk.StringVar(self, value=self.client_socket.address[1])
@@ -127,7 +134,8 @@ class UI(tk.Tk):
         assert len(sel) == 1, "Too many items selected."
         return str(self.table.get((sel[0])))
 
-    def test(self):
+    @withThread
+    def testCon(self):
         try:
             host = self.host.get()
             post = int(self.post.get())
@@ -140,22 +148,36 @@ class UI(tk.Tk):
         except Exception as err:
             messagebox.showwarning(self.title(), str(err))
 
+    @withThread
     def updateList(self):
         try:
             self.update()
             self.data.set(self.client_socket.list())
             self.table.selection_clear(0, self.table.size() - 1)
+            self.update_toplever()
         except Exception as err:
             messagebox.showwarning(self.title(), str(err))
 
+    @withThread
+    def eraseFile(self):
+        try:
+            passwd = self.token.get()
+            item = self.getSelFile()
+            messagebox.showinfo(self.title(), self.client_socket.erase(item, passwd))
+            self.updateList()
+        except Exception as err:
+            messagebox.showwarning(self.title(), str(err))
+
+    @withThread
     def pushFile(self):
         try:
+            self.client_socket.test()
             passwd = self.token.get()
             fn = filedialog.askopenfilename(title=self.title())
             if not fn:
                 return
 
-            pro = ProgressbarToplevel(self, f"Uploading - {getFilename(fn)}")
+            pro = self.start_toplever(f"Uploading - {getFilename(fn)}")
 
             def pushCallBack(sent: int, size: int):
                 if not pro.winfo_exists():
@@ -168,32 +190,21 @@ class UI(tk.Tk):
                 self.client_socket.insert(fn, passwd, callback=pushCallBack),
             )
 
-            pro.destroy()
+            self.close_toplever(pro)
         except Exception as err:
             messagebox.showwarning(self.title(), str(err))
             raise
         else:
             self.updateList()
 
-    def eraseFile(self):
-        try:
-            passwd = self.token.get()
-            item = self.getSelFile()
-            messagebox.showinfo(self.title(), self.client_socket.erase(item, passwd))
-            self.updateList()
-        except Exception as err:
-            messagebox.showwarning(self.title(), str(err))
-
+    @withThread
     def installFile(self):
-        def showProBar(toplevel: ProgressbarToplevel):
-            while toplevel.winfo_exists():
-                toplevel.update()
-
+        toplevel = None
         try:
             passwd = self.token.get()
             item = self.getSelFile()
-            toplevel = ProgressbarToplevel(self, f"Download - {item}")
-            threading.Thread(target=showProBar, args=(toplevel,), daemon=True).start()
+            toplevel = self.start_toplever(f"Download - {item}")
+            toplevel.start()
             ret = self.client_socket.get(item, passwd)
             if not toplevel.winfo_exists():
                 messagebox.showinfo(self.title(), "Abort.")
@@ -210,10 +221,24 @@ class UI(tk.Tk):
         except Exception as err:
             messagebox.showwarning(self.title(), str(err))
         finally:
-            try:
-                toplevel.destroy()
-            except UnboundLocalError:
-                ...
+            self.close_toplever(toplevel)
+
+    def start_toplever(self, title: str = None):
+        tl = ProgressbarToplevel(self, self.title() if title is None else title)
+        self.toplever_table.add(tl)
+        return tl
+
+    def close_toplever(self, toplevel: ProgressbarToplevel):
+        if toplevel is not None:
+            toplevel.destroy()
+            self.toplever_table.remove(toplevel)
+
+    def update_toplever(self):
+        for tp in self.toplever_table.copy():
+            if tp.winfo_exists():
+                tp.letTop()
+            else:
+                self.toplever_table.remove(tp)
 
 
 if __name__ == "__main__":

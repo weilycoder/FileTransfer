@@ -56,3 +56,14 @@ def recvs(client: socket.socket, bufsize: int):
 
 def getFilename(path: str):
     return path.replace("\\", "/").split("/")[-1]
+
+
+def withThread(function: typing.Callable[..., typing.Any]):
+    def wrapper(*args, **kwargs):
+        thread = threading.Thread(
+            target=function, args=args, kwargs=kwargs, daemon=True
+        )
+        thread.start()
+        return thread
+
+    return wrapper
