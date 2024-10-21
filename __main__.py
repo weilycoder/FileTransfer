@@ -15,6 +15,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "-p", "--post", default=8080, type=int, help="set the communication port"
     )
+    parser.add_argument("-b", "--buf", type=int, help="set buffer size")
     parser.add_argument("--timeout", type=float, help="set the timeout in second")
     parser.add_argument(
         "--backlog",
@@ -35,10 +36,16 @@ if __name__ == "__main__":
                 post=args.post,
                 backlog=args.backlog,
                 client_timeout=args.timeout,
+                bufsize=args.buf,
             )
             app.start()
             wait()
         else:
-            app = UI(host=args.host, post=args.post, client_timeout=args.timeout)
+            app = UI(
+                host=args.host,
+                post=args.post,
+                client_timeout=args.timeout,
+                bufsize=args.buf,
+            )
     except Exception as err:
         print(err, file=sys.stderr)

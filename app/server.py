@@ -57,6 +57,7 @@ class Server:
         client_timeout: float = None,
         *,
         super_passwd: str = None,
+        bufsize: int = None,
         logger: typing.Callable[..., None] = print,
     ):
         self.file_table = {}
@@ -64,12 +65,31 @@ class Server:
         self.server_socket.bind((hostname, post))
         self.server_socket.listen(backlog)
         self.timeout = client_timeout if client_timeout is not None else SER_TIMEOUT
+        self.bufsize = BUFSIZE if bufsize is None else bufsize
         self.logger = logger
         if super_passwd is not None:
             DFile.set_super_passwd(super_passwd.encode())
 
+    @property
+    def ver_info(self):
+        return {"version": VERSION, "bufsize": self.bufsize}
+
+    def recv_file(self, fd: socket.socket, file: typing.BinaryIO):
+        size = int(fd.recv(self.bufsize), 16)
+        fd.send(OK)
+        sent = 0
+        while sent < size:
+            data = fd.recv(self.bufsize)
+            if not data:
+                break
+            sent += len(data)
+            fd.send(CONT)
+            file.write(data)
+            yield sent, size
+        assert sent == size, FAIL_LEN
+
     def REQ_test(self, client: socket.socket, type: str):
-        client.sendall(VERSION.encode())
+        client.sendall(json.dumps(self.ver_info).encode())
 
     def REQ_list(self, client: socket.socket, type: str):
         client.sendall(json.dumps(list(self.file_table)).encode())
@@ -82,7 +102,7 @@ class Server:
         ns = str(client.getpeername())
         client.send(OK)
         try:
-            for p, q in recv_file(client, self.file_table[file].temp):
+            for p, q in self.recv_file(client, self.file_table[file].temp):
                 self.logger(ns, f"{p}/{q}")
         except Exception:
             self.file_table.pop(file).close()
@@ -107,7 +127,7 @@ class Server:
         ns = str(client.getpeername())
         client.settimeout(self.timeout)
         try:
-            head = json.loads(client.recv(BUFSIZE).decode())
+            head = json.loads(client.recv(self.bufsize).decode())
             assert type(head) is dict, CANT_READ
             assert "type" in head, CANT_READ
             assert type(head["type"]) is str, CANT_READ

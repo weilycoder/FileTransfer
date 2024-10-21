@@ -6,10 +6,36 @@ class Client:
         self,
         hostname: str = "localhost",
         post: int = 8080,
+        *,
         client_timeout: float = None,
+        bufsize: int = None
     ):
         self.address = (hostname, post)
         self.timeout = CLI_TIMEOUT if client_timeout is None else client_timeout
+        self.bufsize = BUFSIZE if bufsize is None else bufsize
+
+    @property
+    def ver_info(self):
+        return {"version": VERSION, "bufsize": self.bufsize}
+
+    def send_file(self, fd: socket.socket, filename: str):
+        with open(filename, "rb") as f:
+            size = os.path.getsize(filename)
+            head = hex(size).encode()
+            assert len(head) <= self.bufsize, REQ_HEAD_TOO_LONG
+            fd.send(head)
+            code = fd.recv(self.bufsize)
+            assert code == OK, FAIL_REQ
+            sent = 0
+            while True:
+                data = f.read(self.bufsize)
+                if not data:
+                    break
+                fd.send(data)
+                sent += len(data)
+                code = fd.recv(self.bufsize)
+                assert code == CONT, FAIL_SEND
+                yield (sent, size)
 
     def requset_head(self, **data: str):
         cli = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -19,14 +45,18 @@ class Client:
         return cli
 
     def test(self):
-        cli = self.requset_head(type="test")
-        code = cli.recv(BUFSIZE)
-        cli.close()
-        assert code == VERSION.encode(), VERSION_DIFF
+        try:
+            cli = self.requset_head(type="test")
+            code = cli.recv(self.bufsize)
+            code = json.loads(code.decode())
+            assert code == self.ver_info
+            cli.close()
+        except Exception:
+            raise Exception(SETTING_DIFF)
 
     def list(self):
         cli = self.requset_head(type="list")
-        res = json.loads(recvs(cli).decode())
+        res = json.loads(recvs(cli, self.bufsize).decode())
         cli.close()
         assert type(res) is list
         return res
@@ -40,21 +70,21 @@ class Client:
     ):
         file = getFilename(filepath)
         cli = self.requset_head(type="insert", file=file, passwd=passwd)
-        code = cli.recv(BUFSIZE)
+        code = cli.recv(self.bufsize)
         assert code == OK
-        for p, q in send_file(cli, filepath):
+        for p, q in self.send_file(cli, filepath):
             callback(p, q)
-        code = cli.recv(BUFSIZE)
+        code = cli.recv(self.bufsize)
         return code.decode()
 
     def erase(self, file: str, passwd: str = ""):
         cli = self.requset_head(type="erase", file=file, passwd=passwd)
-        code = cli.recv(BUFSIZE)
+        code = cli.recv(self.bufsize)
         cli.close()
         return code.decode()
 
     def get(self, file: str, passwd: str = ""):
         cli = self.requset_head(type="get", file=file, passwd=passwd)
-        res = recvs(cli)
+        res = recvs(cli, self.bufsize)
         cli.close()
         return res
