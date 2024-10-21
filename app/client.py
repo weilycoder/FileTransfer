@@ -71,7 +71,8 @@ class Client:
         file = getFilename(filepath)
         cli = self.requset_head(type="insert", file=file, passwd=passwd)
         code = cli.recv(self.bufsize)
-        assert code == OK
+        if code != OK:
+            return code.decode()
         for p, q in self.send_file(cli, filepath):
             callback(p, q)
         code = cli.recv(self.bufsize)

@@ -109,9 +109,10 @@ class UI(tk.Tk):
                 self.title(),
                 self.client_socket.insert(fn, passwd, callback=self.pushCallBack),
             )
-            self.updateList()
         except Exception as err:
             messagebox.showwarning(self.title(), str(err))
+        else:
+            self.updateList()
 
     def eraseFile(self):
         try:

@@ -42,8 +42,10 @@ class DFile:
         if self.temp is None:
             return b""
         self.temp.flush()
-        self.temp.seek(0)
-        return self.temp.read()
+        new_fd = os.dup(self.temp.fileno())
+        with os.fdopen(new_fd, "rb") as f:
+            f.seek(0)
+            return self.temp.read()
 
 
 class Server:
@@ -80,10 +82,10 @@ class Server:
         sent = 0
         while sent < size:
             data = fd.recv(self.bufsize)
-            if not data:
-                break
             sent += len(data)
             fd.send(CONT)
+            if not data:
+                break
             file.write(data)
             yield sent, size
         assert sent == size, FAIL_LEN
@@ -98,15 +100,12 @@ class Server:
         self, client: socket.socket, type: str, *, file: str, passwd: str = ""
     ):
         assert file not in self.file_table, FILE_EXIST
-        self.file_table[file] = DFile(passwd.encode())
+        fd = DFile(passwd.encode())
         ns = str(client.getpeername())
         client.send(OK)
-        try:
-            for p, q in self.recv_file(client, self.file_table[file].temp):
-                self.logger(ns, f"{p}/{q}")
-        except Exception:
-            self.file_table.pop(file).close()
-            raise
+        for p, q in self.recv_file(client, fd.temp):
+            self.logger(ns, f"{p}/{q}")
+        self.file_table[file] = fd
         client.sendall(OK)
 
     def REQ_erase(
