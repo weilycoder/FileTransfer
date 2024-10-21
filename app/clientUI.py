@@ -83,10 +83,8 @@ class UI(tk.Tk):
             host = self.host.get()
             post = int(self.post.get())
             self.client_socket = Client(host, post, self.timeout)
-            if self.client_socket.test():
-                messagebox.showinfo(self.title(), "Test Ok.")
-            else:
-                messagebox.showwarning(self.title(), "Test Failed.")
+            self.client_socket.test()
+            messagebox.showinfo(self.title(), "Test Ok.")
             self.updateList()
         except Exception as err:
             messagebox.showwarning(self.title(), str(err))
@@ -105,12 +103,10 @@ class UI(tk.Tk):
             fn = filedialog.askopenfilename(title=self.title())
             if not fn:
                 return
-            with open(fn, "rb") as f:
-                data = b64encode(f.read()).decode()
-                messagebox.showinfo(
-                    self.title(),
-                    self.client_socket.insert(getFilename(fn), data, passwd),
-                )
+            messagebox.showinfo(
+                self.title(),
+                self.client_socket.insert(fn, passwd, callback=self.pushCallBack),
+            )
             self.updateList()
         except Exception as err:
             messagebox.showwarning(self.title(), str(err))
@@ -129,19 +125,23 @@ class UI(tk.Tk):
             passwd = self.token.get()
             item = self.getSelFile()
             ret = self.client_socket.get(item, passwd)
-            try:
-                data = b64decode(ret)
-            except:
-                messagebox.showinfo(self.title(), ret)
-            else:
+            if not ret[-1]:
+                ret.pop()
                 fn = filedialog.asksaveasfilename(title=self.title(), initialfile=item)
                 if not fn:
                     return
                 with open(fn, "wb") as f:
-                    f.write(data)
+                    f.write(ret)
                 messagebox.showinfo(self.title(), "Install Ok.")
+            else:
+                print(ret)
+                messagebox.showinfo(self.title(), ret.decode())
         except Exception as err:
             messagebox.showwarning(self.title(), str(err))
+
+    def pushCallBack(self, sent: int, size: int):
+        print(sent, size)
+        self.update()
 
 
 if __name__ == "__main__":

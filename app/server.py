@@ -10,14 +10,17 @@ def checkHash(passwd: bytes, hash: bytes):
 class DFile:
     super_passwd = b""
 
-    def __init__(self, data: bytes, passwd: bytes = b""):
+    def __init__(self, passwd: bytes = b""):
         self.temp = tempfile.TemporaryFile()
-        self.temp.write(data)
         self.passwd = hashlib.sha256(passwd).digest()
 
     @staticmethod
     def set_super_passwd(passwd: bytes):
         DFile.super_passwd = hashlib.sha256(passwd).digest()
+
+    @property
+    def filesize(self):
+        return os.fstat(self.temp.fileno()).st_size
 
     def closed(self):
         return self.temp is None
@@ -38,109 +41,86 @@ class DFile:
     def read(self):
         if self.temp is None:
             return b""
+        self.temp.flush()
         self.temp.seek(0)
         return self.temp.read()
 
 
 class Server:
     file_table: Dict[str, DFile]
-    cmd_list: Dict[str, Tuple[str]] = {
-        "test": (),
-        "list": (),
-        "insert": ("file", "data", "passwd"),
-        "erase": ("file", "passwd"),
-        "get": ("file", "passwd"),
-    }
 
     def __init__(
         self,
         hostname: str = "localhost",
         post: int = 8080,
         backlog: int = 16,
-        client_timeout: Union[float, None] = 0.2,
+        client_timeout: Union[float, None] = SER_TIMEOUT,
         *,
         super_passwd: str = None,
-        logger: Callable[[str], None] = print
+        logger: Callable[..., None] = print,
     ):
         self.file_table = {}
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server_socket.bind((hostname, post))
         self.server_socket.listen(backlog)
-        self.timeout = client_timeout if client_timeout is not None else 0.2
+        self.timeout = client_timeout if client_timeout is not None else SER_TIMEOUT
         self.logger = logger
         if super_passwd is not None:
             DFile.set_super_passwd(super_passwd.encode())
 
-    def list(self):
-        return json.dumps(list(self.file_table))
+    def REQ_test(self, client: socket.socket, type: str):
+        client.sendall(VERSION.encode())
 
-    def insert(self, file: str, data: bytes, passwd: bytes = b""):
-        if file in self.file_table:
-            raise Exception("File already exist.")
-        self.file_table[file] = DFile(data, passwd)
+    def REQ_list(self, client: socket.socket, type: str):
+        client.sendall(json.dumps(list(self.file_table)).encode())
 
-    def erase(self, file: str, passwd: bytes = b""):
-        if file not in self.file_table:
-            raise Exception("File does not exist.")
-        df = self.file_table[file]
-        if not df.check(passwd):
-            raise Exception("Password error.")
-        df.close()
-        self.file_table.pop(file)
+    def REQ_insert(
+        self, client: socket.socket, type: str, *, file: str, passwd: str = ""
+    ):
+        assert file not in self.file_table, FILE_EXIST
+        self.file_table[file] = DFile(passwd.encode())
+        ns = str(client.getpeername())
+        client.send(OK)
+        try:
+            for p, q in recv_file(client, self.file_table[file].temp):
+                self.logger(ns, f"{p}/{q}")
+        except Exception:
+            self.file_table.pop(file).close()
+            raise
+        client.sendall(OK)
 
-    def get(self, file: str, passwd: bytes = b""):
-        if file not in self.file_table:
-            raise Exception("File does not exist.")
-        df = self.file_table[file]
-        if not df.check(passwd):
-            raise Exception("Password error.")
-        return df.read()
+    def REQ_erase(
+        self, client: socket.socket, type: str, *, file: str, passwd: str = ""
+    ):
+        assert file in self.file_table, FILE_NOT_EXIST
+        assert self.file_table[file].check(passwd.encode()), PASSWD_ERR
+        self.file_table.pop(file).close()
+        client.sendall(OK)
 
-    @staticmethod
-    def check_data(data: str):
-        args = json.loads(data)
-        assert type(args) is dict, "Can't Decode Data"
-        assert "type" in args, "Can't Decode Data"
-        assert args["type"] in Server.cmd_list, "Can't Decode Data"
-        for g in Server.cmd_list[args["type"]]:
-            assert g in args and type(args[g]) is str, "Can't Decode Data"
-        return args
+    def REQ_get(self, client: socket.socket, type: str, *, file: str, passwd: str = ""):
+        assert file in self.file_table, FILE_NOT_EXIST
+        dF = self.file_table[file]
+        assert dF.check(passwd.encode()), PASSWD_ERR
+        client.sendall(dF.read() + b"\0")
 
     def server(self, client: socket.socket):
-        self.logger(str(client.getpeername()))
+        ns = str(client.getpeername())
         client.settimeout(self.timeout)
         try:
-            data = Server.check_data(recvs(client).decode())
-            if data["type"] == "test":
-                try_send(client, OK)
-            elif data["type"] == "list":
-                client.sendall(self.list().encode())
-            elif data["type"] == "insert":
-                self.insert(
-                    data["file"],
-                    data["data"].encode(),
-                    data["passwd"].encode(),
-                )
-                try_send(client, OK)
-            elif data["type"] == "erase":
-                self.erase(
-                    data["file"],
-                    data["passwd"].encode(),
-                )
-                try_send(client, OK)
-            elif data["type"] == "get":
-                data = self.get(
-                    data["file"],
-                    data["passwd"].encode(),
-                )
-                client.sendall(data)
-            else:
-                raise Exception("Can't Decode Data")
+            head = json.loads(client.recv(BUFSIZE).decode())
+            assert type(head) is dict, CANT_READ
+            assert "type" in head, CANT_READ
+            assert type(head["type"]) is str, CANT_READ
+            self.logger(ns, f"Req: {head['type']}")
+            self.__getattribute__("REQ_" + head["type"])(client, **head)
+        except (TypeError, AttributeError) as err:
+            self.logger(ns, err)
+            try_send(client, CANT_READ.encode())
         except Exception as err:
-            self.logger(str(err))
+            self.logger(ns, str(err))
             try_send(client, str(err).encode())
         else:
-            self.logger("Ok.")
+            self.logger(ns, "Ok.")
         finally:
             client.close()
 
