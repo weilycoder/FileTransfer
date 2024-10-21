@@ -63,6 +63,7 @@ class Server:
         logger: typing.Callable[..., None] = print,
     ):
         self.file_table = {}
+        self.file_pre = set()
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server_socket.bind((hostname, post))
         self.server_socket.listen(backlog)
@@ -99,14 +100,18 @@ class Server:
     def REQ_insert(
         self, client: socket.socket, type: str, *, file: str, passwd: str = ""
     ):
-        assert file not in self.file_table, FILE_EXIST
-        fd = DFile(passwd.encode())
-        ns = str(client.getpeername())
-        client.send(OK)
-        for p, q in self.recv_file(client, fd.temp):
-            self.logger(ns, f"{p}/{q}")
-        self.file_table[file] = fd
-        client.sendall(OK)
+        assert file not in self.file_table and file not in self.file_pre, FILE_EXIST
+        try:
+            self.file_pre.add(file)
+            fd = DFile(passwd.encode())
+            ns = str(client.getpeername())
+            client.send(OK)
+            for p, q in self.recv_file(client, fd.temp):
+                self.logger(ns, f"{p}/{q}")
+            self.file_table[file] = fd
+            client.sendall(OK)
+        finally:
+            self.file_pre.remove(file)
 
     def REQ_erase(
         self, client: socket.socket, type: str, *, file: str, passwd: str = ""
@@ -157,5 +162,5 @@ class Server:
 
         thread = threading.Thread(target=listener, daemon=True)
         thread.start()
-        self.logger("Start.")
+        self.logger("Start: ", self.ver_info)
         return thread
