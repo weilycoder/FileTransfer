@@ -1,7 +1,10 @@
 import sys
 import argparse
 
-from app import *
+try:
+    from app import *
+except ImportError:
+    from .app import *
 
 
 if __name__ == "__main__":

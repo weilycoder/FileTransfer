@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+
+[project]
+name = "weily-FileTransfer"
+version = "0.2.1"
+authors = [
+  { name="weilycoder", email="weily2009@outlook.com" }
+]
+description = "Local Area Network (LAN) file transfer utility."
+readme = "README.md"
+license = { file = "LICENSE.txt" }
+requires-python = ">=3.6"
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/weilycoder/FileTransfer/"
+
+[tool.setuptools]
+packages = ["weily-FileTransfer", "weily-FileTransfer.app"]
