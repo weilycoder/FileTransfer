@@ -92,7 +92,7 @@ class UI(tk.Tk):
             self, text="Update", cursor="hand2", command=self.updateList
         )
         self.pushB = ttk.Button(
-            self, text="Upload", cursor="hand2", command=self.pushFile
+            self, text="Upload", cursor="hand2", command=self.pushFiles
         )
         self.deleteB = ttk.Button(
             self, text="Delete", cursor="hand2", command=self.eraseFile
@@ -141,12 +141,11 @@ class UI(tk.Tk):
         try:
             self.client_socket = self.newClient()
             self.client_socket.test()
-            messagebox.showinfo(self.title(), "Link Ok.")
+            self.showinfo("Link Ok.")
             self.updateList()
         except Exception as err:
-            messagebox.showwarning(self.title(), str(err))
+            self.showwarning(str(err))
 
-    @withThread
     def updateList(self):
         try:
             self.update()
@@ -154,20 +153,28 @@ class UI(tk.Tk):
             self.table.selection_clear(0, self.table.size() - 1)
             self.update_toplever()
         except Exception as err:
-            messagebox.showwarning(self.title(), str(err))
+            self.showwarning(str(err))
 
-    @withThread
     def eraseFile(self):
         try:
             passwd = self.token.get()
             item = self.getSelFile()
-            messagebox.showinfo(self.title(), self.client_socket.erase(item, passwd))
+            self.showinfo(self.client_socket.erase(item, passwd))
             self.updateList()
         except Exception as err:
-            messagebox.showwarning(self.title(), str(err))
+            self.showwarning(str(err))
+
+    def pushFiles(self):
+        try:
+            self.client_socket.test()
+            passwd = self.token.get()
+            for filename in filedialog.askopenfilenames(title=self.title()):
+                self.pushFile(filename, passwd)
+        except Exception as err:
+            self.showwarning(str(err))
 
     @withThread
-    def pushFile(self):
+    def pushFile(self, fn: str, passwd: str):
         @ignoreExceptions(Exception, True)
         def pushCallBack(sent: int, size: int):
             if not size or not pro.winfo_exists():
@@ -178,20 +185,10 @@ class UI(tk.Tk):
             return False
 
         try:
-            self.client_socket.test()
-            passwd = self.token.get()
-            fn = filedialog.askopenfilename(title=self.title())
-            if not fn:
-                return
-
             pro = self.start_toplever(f"Uploading - {getFilename(fn)}")
-
-            messagebox.showinfo(
-                self.title(),
-                self.client_socket.insert(fn, passwd, callback=pushCallBack),
-            )
+            self.showinfo(self.client_socket.insert(fn, passwd, callback=pushCallBack))
         except Exception as err:
-            messagebox.showwarning(self.title(), str(err))
+            self.showwarning(str(err))
         else:
             self.updateList()
         finally:
@@ -207,7 +204,7 @@ class UI(tk.Tk):
             toplevel.start()
             ret = self.client_socket.get(item, passwd)
             if not toplevel.winfo_exists():
-                messagebox.showinfo(self.title(), "Abort.")
+                self.showinfo("Abort.")
             elif not ret[-1]:
                 ret.pop()
                 fn = filedialog.asksaveasfilename(title=self.title(), initialfile=item)
@@ -215,12 +212,11 @@ class UI(tk.Tk):
                     return
                 with open(fn, "wb") as f:
                     f.write(ret)
-                messagebox.showinfo(self.title(), "Install Ok.")
+                self.showinfo("Install Ok.")
             else:
-                messagebox.showinfo(self.title(), ret.decode())
+                self.showinfo(ret.decode())
         except Exception as err:
-            messagebox.showwarning(self.title(), str(err))
-            raise
+            self.showwarning(str(err))
         finally:
             self.close_toplever(toplevel)
 
@@ -241,6 +237,12 @@ class UI(tk.Tk):
                 tp.letTop()
             else:
                 self.toplever_table.remove(tp)
+
+    def showinfo(self, msg: str):
+        messagebox.showinfo(self.title(), msg)
+
+    def showwarning(self, msg: str):
+        messagebox.showwarning(self.title(), msg)
 
 
 if __name__ == "__main__":
