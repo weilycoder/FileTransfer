@@ -1,4 +1,3 @@
-from base64 import b64decode, b64encode
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
 
@@ -37,6 +36,7 @@ class ProgressbarToplevel(tk.Toplevel):
 
     def start(self):
         self.progress_bar.config(mode="indeterminate")
+        self.progress_bar.start()
         self.update()
 
     def letTop(self):
@@ -66,14 +66,22 @@ class UI(tk.Tk):
         self.geometry(f"{width}x{height}")
         self.bufsize = bufsize
         self.toplever_table = set()
-        self.client_socket = Client(
-            host, post, client_timeout=self.timeout, bufsize=self.bufsize
-        )
+        self.data = tk.StringVar(self)
+        self.token = tk.StringVar(self)
+        self.host = tk.StringVar(self, host)
+        self.post = tk.StringVar(self, post)
+        self.client_socket = self.newClient()
         self.initUI()
 
-    def initUI(self):
-        self.data = tk.StringVar(self)
+    def newClient(self):
+        return Client(
+            self.host.get(),
+            int(self.post.get()),
+            client_timeout=self.timeout,
+            bufsize=self.bufsize,
+        )
 
+    def initUI(self):
         self.ytableScrollbar = ttk.Scrollbar(self, cursor="hand2")
         self.table = tk.Listbox(
             self, yscrollcommand=self.ytableScrollbar, listvariable=self.data
@@ -92,11 +100,7 @@ class UI(tk.Tk):
         self.installB = ttk.Button(
             self, text="Download", cursor="hand2", command=self.installFile
         )
-        self.testB = ttk.Button(self, text="Test", cursor="hand2", command=self.testCon)
-
-        self.host = tk.StringVar(self, value=self.client_socket.address[0])
-        self.post = tk.StringVar(self, value=self.client_socket.address[1])
-        self.token = tk.StringVar(self, value="")
+        self.testB = ttk.Button(self, text="Link", cursor="hand2", command=self.testCon)
 
         self.hostE = ttk.Entry(self, textvariable=self.host)
         self.tokenE = ttk.Entry(self, textvariable=self.token)
@@ -112,11 +116,11 @@ class UI(tk.Tk):
         self.testB.place(relx=0.78, rely=0.8, relwidth=0.08, relheight=0.06)
 
         ttk.Label(self, text="Host:", anchor="e").place(
-            relx=0.465, rely=0.81, relwidth=0.055, relheight=0.05, anchor="ne"
+            relx=0.465, rely=0.81, relwidth=0.054, relheight=0.05, anchor="ne"
         )
         self.hostE.place(relx=0.47, rely=0.805, relwidth=0.16, relheight=0.05)
         ttk.Label(self, text="Post:", anchor="e").place(
-            relx=0.685, rely=0.81, relwidth=0.055, relheight=0.05, anchor="ne"
+            relx=0.685, rely=0.81, relwidth=0.054, relheight=0.05, anchor="ne"
         )
         self.postE.place(relx=0.69, rely=0.805, relwidth=0.08, relheight=0.05)
         ttk.Label(self, text="Token:", anchor="e").place(
@@ -135,13 +139,9 @@ class UI(tk.Tk):
     @withThread
     def testCon(self):
         try:
-            host = self.host.get()
-            post = int(self.post.get())
-            self.client_socket = Client(
-                host, post, client_timeout=self.timeout, bufsize=self.bufsize
-            )
+            self.client_socket = self.newClient()
             self.client_socket.test()
-            messagebox.showinfo(self.title(), "Test Ok.")
+            messagebox.showinfo(self.title(), "Link Ok.")
             self.updateList()
         except Exception as err:
             messagebox.showwarning(self.title(), str(err))
@@ -220,6 +220,7 @@ class UI(tk.Tk):
                 messagebox.showinfo(self.title(), ret.decode())
         except Exception as err:
             messagebox.showwarning(self.title(), str(err))
+            raise
         finally:
             self.close_toplever(toplevel)
 
