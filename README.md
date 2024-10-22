@@ -1,5 +1,12 @@
 # 文件传输器
 
+[![Release](https://img.shields.io/github/v/release/weilycoder/FileTransfer)](https://github.com/weilycoder/FileTransfer/releases/)
+[![github](https://img.shields.io/badge/github-FileTransfer-blue?logo=github)](https://github.com/weilycoder/FileTransfer)
+[![Test PyPI](https://img.shields.io/badge/Test_PyPI-FileTransfer-blue?logo=pypi)](https://test.pypi.org/project/weily-FileTransfer/)
+[![sata-license](https://img.shields.io/badge/License-SATA-green)](https://github.com/zTrix/sata-license)
+![Stars](https://img.shields.io/github/stars/weilycoder/FileTransfer)
+![Forks](https://img.shields.io/github/forks/weilycoder/FileTransfer)
+
 用于在学校机房传输文件。
 
 使用命令行启动，不带任何参数默认以客户端启动，设置 `-s` / `--server` 启动服务端。前者有 UI，后者仅在命令行显示简单日志。
