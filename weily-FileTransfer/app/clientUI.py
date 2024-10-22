@@ -82,53 +82,69 @@ class UI(tk.Tk):
         )
 
     def initUI(self):
-        self.ytableScrollbar = ttk.Scrollbar(self, cursor="hand2")
-        self.table = tk.Listbox(
-            self, yscrollcommand=self.ytableScrollbar, listvariable=self.data
+        self.initListboxWithBar().place(
+            relx=0.0, rely=0.0, relwidth=1.0, relheight=0.75
         )
-        self.ytableScrollbar.config(command=self.table.yview)
-
-        self.updateB = ttk.Button(
-            self, text="Update", cursor="hand2", command=self.updateList
-        )
-        self.pushB = ttk.Button(
-            self, text="Upload", cursor="hand2", command=self.pushFiles
-        )
-        self.deleteB = ttk.Button(
-            self, text="Delete", cursor="hand2", command=self.eraseFile
-        )
-        self.installB = ttk.Button(
-            self, text="Download", cursor="hand2", command=self.installFile
-        )
-        self.testB = ttk.Button(self, text="Link", cursor="hand2", command=self.testCon)
-
-        self.hostE = ttk.Entry(self, textvariable=self.host)
-        self.tokenE = ttk.Entry(self, textvariable=self.token)
-        self.postE = ttk.Entry(self, textvariable=self.post)
-
-        self.table.place(relx=0.0, rely=0.0, relwidth=0.98, relheight=0.75)
-        self.ytableScrollbar.place(relx=0.98, rely=0.0, relwidth=0.02, relheight=0.75)
-
-        self.updateB.place(relx=0.04, rely=0.80, relwidth=0.15, relheight=0.06)
-        self.pushB.place(relx=0.21, rely=0.80, relwidth=0.15, relheight=0.06)
-        self.deleteB.place(relx=0.04, rely=0.88, relwidth=0.15, relheight=0.06)
-        self.installB.place(relx=0.21, rely=0.88, relwidth=0.15, relheight=0.06)
-        self.testB.place(relx=0.78, rely=0.8, relwidth=0.08, relheight=0.06)
-
-        ttk.Label(self, text="Host:", anchor="e").place(
-            relx=0.465, rely=0.81, relwidth=0.054, relheight=0.05, anchor="ne"
-        )
-        self.hostE.place(relx=0.47, rely=0.805, relwidth=0.16, relheight=0.05)
-        ttk.Label(self, text="Post:", anchor="e").place(
-            relx=0.685, rely=0.81, relwidth=0.054, relheight=0.05, anchor="ne"
-        )
-        self.postE.place(relx=0.69, rely=0.805, relwidth=0.08, relheight=0.05)
-        ttk.Label(self, text="Token:", anchor="e").place(
-            relx=0.465, rely=0.89, relwidth=0.075, relheight=0.05, anchor="ne"
-        )
-        self.tokenE.place(relx=0.47, rely=0.885, relwidth=0.4, relheight=0.05)
-
+        self.initButtons().place(relx=0.04, rely=0.8, relwidth=0.32, relheight=0.15)
+        self.initLinkCon().place(relx=0.38, rely=0.8, relwidth=0.5, relheight=0.15)
         self.mainloop()
+
+    def initListboxWithBar(self):
+        BARWID = 0.02
+        BOXWID = 1 - BARWID
+        root = ttk.Frame(self)
+        ytableScrollbar = ttk.Scrollbar(root, cursor="hand2")
+        self.table = tk.Listbox(
+            root, yscrollcommand=ytableScrollbar, listvariable=self.data
+        )
+        ytableScrollbar.config(command=self.table.yview)
+        self.table.place(relx=0.0, rely=0.0, relwidth=BOXWID, relheight=1.0)
+        ytableScrollbar.place(relx=BOXWID, rely=0.0, relwidth=BARWID, relheight=1.0)
+        return root
+
+    def initButtons(self):
+        DX, DY = 0.02, 0.05
+        BWID, BHEI = 0.5 - DX, 0.5 - DY
+        BX, BY = 1 - BWID - DX, 1 - BHEI - DY
+        root = ttk.Frame(self, relief="groove")
+        ttk.Button(root, text="Update", cursor="hand2", command=self.updateList).place(
+            relx=DX, rely=DY, relwidth=BWID, relheight=BHEI
+        )
+        ttk.Button(root, text="Upload", cursor="hand2", command=self.pushFiles).place(
+            relx=BX, rely=DY, relwidth=BWID, relheight=BHEI
+        )
+        ttk.Button(root, text="Delete", cursor="hand2", command=self.eraseFile).place(
+            relx=DX, rely=BY, relwidth=BWID, relheight=BHEI
+        )
+        ttk.Button(root, text="Download", cursor="hand2", command=self.download).place(
+            relx=BX, rely=BY, relwidth=BWID, relheight=BHEI
+        )
+        return root
+
+    def initLinkCon(self):
+        root = ttk.Frame(self, relief="groove")
+        ttk.Label(root, text="Host:", anchor="e").place(
+            relx=0.17, rely=0.1, relwidth=0.108, relheight=0.33, anchor="ne"
+        )
+        ttk.Label(root, text="Post:", anchor="e").place(
+            relx=0.61, rely=0.1, relwidth=0.108, relheight=0.33, anchor="ne"
+        )
+        ttk.Label(root, text="Token:", anchor="e").place(
+            relx=0.17, rely=0.6, relwidth=0.14, relheight=0.33, anchor="ne"
+        )
+        ttk.Button(root, text="Link", cursor="hand2", command=self.testCon).place(
+            relx=0.8, rely=0.067, relwidth=0.16, relheight=0.37
+        )
+        ttk.Entry(root, textvariable=self.host).place(
+            relx=0.18, rely=0.067, relwidth=0.32, relheight=0.33
+        )
+        ttk.Entry(root, textvariable=self.post).place(
+            relx=0.62, rely=0.067, relwidth=0.16, relheight=0.33
+        )
+        ttk.Entry(root, textvariable=self.token).place(
+            relx=0.18, rely=0.57, relwidth=0.8, relheight=0.33
+        )
+        return root
 
     def getSelFile(self):
         sel = self.table.curselection()
@@ -195,7 +211,7 @@ class UI(tk.Tk):
             pushCallBack(0, 0)
 
     @withThread
-    def installFile(self):
+    def download(self):
         toplevel = None
         try:
             passwd = self.token.get()

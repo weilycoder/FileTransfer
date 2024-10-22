@@ -72,7 +72,7 @@ def withThread(function: typing.Callable[..., typing.Any]):
     return wrapper
 
 
-def ignoreExceptions(error: Exception, codeWhenError: typing.Any = None):
+def ignoreExceptions(error: typing.Type[BaseException], codeWhenError: typing.Any = None):
     def decorator(function: typing.Callable[..., typing.Any]):
         @wraps(function)
         def warpper(*args, **kwargs):
