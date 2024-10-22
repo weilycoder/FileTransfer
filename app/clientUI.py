@@ -27,15 +27,13 @@ class ProgressbarToplevel(tk.Toplevel):
         self.progress_bar.place(relx=0.05, rely=0.25, relwidth=0.9, relheight=0.5)
         self.letTop()
 
+    @ignoreExceptions(Exception, True)
     def run(self, value: int, maximum: int):
-        try:
-            assert self.winfo_exists()
-            self.progress_bar.config(mode="determinate")
-            self.progress_bar["value"] = value
-            self.progress_bar["maximum"] = maximum
-            self.update()
-        except Exception:
-            return True
+        assert self.winfo_exists()
+        self.progress_bar.config(mode="determinate")
+        self.progress_bar["value"] = value
+        self.progress_bar["maximum"] = maximum
+        self.update()
 
     def start(self):
         self.progress_bar.config(mode="indeterminate")
@@ -170,6 +168,15 @@ class UI(tk.Tk):
 
     @withThread
     def pushFile(self):
+        @ignoreExceptions(Exception, True)
+        def pushCallBack(sent: int, size: int):
+            if not size or not pro.winfo_exists():
+                self.close_toplever(pro)
+                return True
+            pro.run(sent, size)
+            self.update()
+            return False
+
         try:
             self.client_socket.test()
             passwd = self.token.get()
@@ -179,23 +186,16 @@ class UI(tk.Tk):
 
             pro = self.start_toplever(f"Uploading - {getFilename(fn)}")
 
-            def pushCallBack(sent: int, size: int):
-                if not pro.winfo_exists():
-                    return True
-                pro.run(sent, size)
-                self.update()
-
             messagebox.showinfo(
                 self.title(),
                 self.client_socket.insert(fn, passwd, callback=pushCallBack),
             )
-
-            self.close_toplever(pro)
         except Exception as err:
             messagebox.showwarning(self.title(), str(err))
-            raise
         else:
             self.updateList()
+        finally:
+            pushCallBack(0, 0)
 
     @withThread
     def installFile(self):
@@ -228,6 +228,7 @@ class UI(tk.Tk):
         self.toplever_table.add(tl)
         return tl
 
+    @ignoreExceptions(Exception)
     def close_toplever(self, toplevel: ProgressbarToplevel):
         if toplevel is not None:
             toplevel.destroy()

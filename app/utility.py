@@ -5,6 +5,8 @@ import os.path
 import threading
 import typing
 
+from functools import wraps
+
 
 VERSION = "0.2.1"
 VERSION_DIFF = "The server and client versions are different."
@@ -59,6 +61,7 @@ def getFilename(path: str):
 
 
 def withThread(function: typing.Callable[..., typing.Any]):
+    @wraps(function)
     def wrapper(*args, **kwargs):
         thread = threading.Thread(
             target=function, args=args, kwargs=kwargs, daemon=True
@@ -67,3 +70,23 @@ def withThread(function: typing.Callable[..., typing.Any]):
         return thread
 
     return wrapper
+
+
+def ignoreExceptions(error: Exception, codeWhenError: typing.Any = None):
+    def decorator(function: typing.Callable[..., typing.Any]):
+        @wraps(function)
+        def warpper(*args, **kwargs):
+            try:
+                return function(*args, **kwargs)
+            except error:
+                return codeWhenError
+
+        return warpper
+
+    return decorator
+
+
+@ignoreExceptions(KeyboardInterrupt)
+def wait():
+    while True:
+        pass
