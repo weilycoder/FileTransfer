@@ -208,7 +208,7 @@ class UI(tk.Tk):
             ret = self.client_socket.get(item, passwd)
             if not toplevel.winfo_exists():
                 messagebox.showinfo(self.title(), "Abort.")
-            if not ret[-1]:
+            elif not ret[-1]:
                 ret.pop()
                 fn = filedialog.asksaveasfilename(title=self.title(), initialfile=item)
                 if not fn:
