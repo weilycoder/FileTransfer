@@ -7,8 +7,6 @@
 ![Stars](https://img.shields.io/github/stars/weilycoder/FileTransfer)
 ![Forks](https://img.shields.io/github/forks/weilycoder/FileTransfer)
 
-`pip install -i https://test.pypi.org/simple/ weily-FileTransfer`
-
 用于在学校机房传输文件。
 
 使用命令行启动，不带任何参数默认以客户端启动，设置 `-s` / `--server` 启动服务端。前者有 UI，后者仅在命令行显示简单日志。
@@ -40,6 +38,14 @@ optional arguments:
 实现了简单的权限控制：若上传文件时指定了非空密码，则删除文件或下载文件时要提供相同密码，或者提供超级密码。
 
 ![Demo](./demo.png)
+
+## 下载
+
+项目上传了 Test PyPI，你可以运行以下命令下载最新版，或者从 Release 页面获取。
+
+```bash
+pip install -i https://test.pypi.org/simple/ weily-FileTransfer
+```
 
 ## Bugs
 
