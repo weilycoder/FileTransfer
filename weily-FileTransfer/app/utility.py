@@ -39,12 +39,12 @@ def try_recv(client: socket.socket, bufsize: int):
 
 
 def try_send(client: socket.socket, msg: bytes):
-    try:
-        client.sendall(msg)
-    except:
-        return -1
-    else:
-        return 0
+    client.sendall(msg)
+
+
+def safe_send_head(client: socket.socket, msg: bytes, bufsize: int):
+    assert len(msg) <= bufsize, REQ_HEAD_TOO_LONG
+    try_send(client, msg)
 
 
 def recvs(client: socket.socket, bufsize: int):
@@ -94,3 +94,13 @@ def ignoreExceptions(
 def wait():
     while True:
         pass
+
+
+def CheckBigInt(start: int):
+    def checker(val: Any):
+        x = int(val)
+        if x < start:
+            raise ValueError
+        return x
+
+    return checker

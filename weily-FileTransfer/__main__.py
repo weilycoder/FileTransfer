@@ -2,9 +2,9 @@ import sys
 import argparse
 
 try:
-    from app import Server, UI, wait
+    from app import Server, UI, wait, CheckBigInt
 except ImportError:
-    from app import Server, UI, wait
+    from app import Server, UI, wait, CheckBigInt
 
 
 if __name__ == "__main__":
@@ -18,7 +18,12 @@ if __name__ == "__main__":
     parser.add_argument(
         "-p", "--post", default=8080, type=int, help="set the communication port"
     )
-    parser.add_argument("-b", "--buf", type=int, help="set buffer size")
+    parser.add_argument(
+        "-b",
+        "--buf",
+        type=CheckBigInt(1024),
+        help="set buffer size, which must be greater than or equal to 1024",
+    )
     parser.add_argument("--timeout", type=float, help="set the timeout in second")
     parser.add_argument(
         "--backlog",

@@ -23,7 +23,7 @@ class Client:
             size = os.path.getsize(filename)
             head = hex(size).encode()
             assert len(head) <= self.bufsize, REQ_HEAD_TOO_LONG
-            fd.send(head)
+            safe_send_head(fd, head, self.bufsize)
             code = fd.recv(self.bufsize)
             assert code == OK, FAIL_REQ
             sent = 0
@@ -31,7 +31,7 @@ class Client:
                 data = f.read(self.bufsize)
                 if not data:
                     break
-                fd.send(data)
+                safe_send_head(fd, data, self.bufsize)
                 sent += len(data)
                 code = fd.recv(self.bufsize)
                 assert code == CONT, FAIL_SEND
@@ -45,15 +45,14 @@ class Client:
         return cli
 
     def test(self):
-        try:
-            cli = self.requset_head(type="test")
-            code = cli.recv(self.bufsize)
-            code = json.loads(code.decode())
-            assert code == self.ver_info, SETTING_DIFF
-        finally:
-            cli.close()
+        cli = self.requset_head(type="test")
+        code = cli.recv(self.bufsize)
+        code = json.loads(code.decode())
+        cli.close()
+        assert code == self.ver_info, SETTING_DIFF
 
     def list(self):
+        self.test()
         cli = self.requset_head(type="list")
         res = json.loads(recvs(cli, self.bufsize).decode())
         cli.close()
@@ -67,6 +66,7 @@ class Client:
         *,
         callback: Callable[[int, int], None] = lambda sent, size: None,
     ):
+        self.test()
         file = getFilename(filepath)
         cli = self.requset_head(type="insert", file=file, passwd=passwd)
         code = cli.recv(self.bufsize)
@@ -82,12 +82,14 @@ class Client:
         return code.decode()
 
     def erase(self, file: str, passwd: str = ""):
+        self.test()
         cli = self.requset_head(type="erase", file=file, passwd=passwd)
         code = cli.recv(self.bufsize)
         cli.close()
         return code.decode()
 
     def get(self, file: str, passwd: str = ""):
+        self.test()
         cli = self.requset_head(type="get", file=file, passwd=passwd)
         res = recvs(cli, self.bufsize)
         cli.close()
