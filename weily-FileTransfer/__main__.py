@@ -4,7 +4,7 @@ import argparse
 try:
     from app import Server, UI, wait, CheckBigInt
 except ImportError:
-    from app import Server, UI, wait, CheckBigInt
+    from .app import Server, UI, wait, CheckBigInt
 
 
 if __name__ == "__main__":
