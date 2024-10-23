@@ -3,7 +3,7 @@ requires = ["setuptools", "wheel"]
 
 [project]
 name = "weily-FileTransfer"
-version = "0.2.1"
+version = "0.2.2"
 authors = [
   { name="weilycoder", email="weily2009@outlook.com" }
 ]
