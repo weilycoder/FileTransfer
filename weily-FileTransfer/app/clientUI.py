@@ -7,7 +7,7 @@ from .client import *
 class ProgressbarToplevel(tk.Toplevel):
     def __init__(
         self,
-        master: tk.Misc = None,
+        master: Union[tk.Misc, None] = None,
         title: str = "",
         width=360,
         height=50,
@@ -26,7 +26,7 @@ class ProgressbarToplevel(tk.Toplevel):
         self.progress_bar.place(relx=0.05, rely=0.25, relwidth=0.9, relheight=0.5)
         self.letTop()
 
-    @ignoreExceptions(Exception, True)
+    @ignoreExceptions(tk.TclError, True)
     def run(self, value: int, maximum: int):
         assert self.winfo_exists()
         self.progress_bar.config(mode="determinate")
@@ -39,6 +39,7 @@ class ProgressbarToplevel(tk.Toplevel):
         self.progress_bar.start()
         self.update()
 
+    @ignoreExceptions(tk.TclError, True)
     def letTop(self):
         self.attributes("-topmost", True)
         self.update()
@@ -47,7 +48,7 @@ class ProgressbarToplevel(tk.Toplevel):
 
 
 class UI(tk.Tk):
-    toplever_table: typing.Set[ProgressbarToplevel]
+    toplever_table: Set[ProgressbarToplevel]
 
     def __init__(
         self,
@@ -57,8 +58,8 @@ class UI(tk.Tk):
         *,
         host: str = "localhost",
         post: int = 8080,
-        client_timeout: int = None,
-        bufsize: int = None,
+        client_timeout: Union[float, None] = None,
+        bufsize: Union[int, None] = None,
     ):
         super().__init__()
         self.timeout = client_timeout
@@ -69,7 +70,7 @@ class UI(tk.Tk):
         self.data = tk.StringVar(self)
         self.token = tk.StringVar(self)
         self.host = tk.StringVar(self, host)
-        self.post = tk.StringVar(self, post)
+        self.post = tk.StringVar(self, str(post))
         self.client_socket = self.newClient()
         self.initUI()
 
@@ -95,7 +96,7 @@ class UI(tk.Tk):
         root = ttk.Frame(self)
         ytableScrollbar = ttk.Scrollbar(root, cursor="hand2")
         self.table = tk.Listbox(
-            root, yscrollcommand=ytableScrollbar, listvariable=self.data
+            root, yscrollcommand=ytableScrollbar, listvariable=self.data # type: ignore
         )
         ytableScrollbar.config(command=self.table.yview)
         self.table.place(relx=0.0, rely=0.0, relwidth=BOXWID, relheight=1.0)
@@ -159,16 +160,16 @@ class UI(tk.Tk):
             self.client_socket.test()
             self.showinfo("Link Ok.")
             self.updateList()
-        except Exception as err:
+        except (OSError, AssertionError) as err:
             self.showwarning(str(err))
 
     def updateList(self):
         try:
             self.update()
-            self.data.set(self.client_socket.list())
+            self.data.set(str(self.client_socket.list()))
             self.table.selection_clear(0, self.table.size() - 1)
             self.update_toplever()
-        except Exception as err:
+        except (OSError, AssertionError) as err:
             self.showwarning(str(err))
 
     def eraseFile(self):
@@ -177,7 +178,7 @@ class UI(tk.Tk):
             item = self.getSelFile()
             self.showinfo(self.client_socket.erase(item, passwd))
             self.updateList()
-        except Exception as err:
+        except (OSError, AssertionError) as err:
             self.showwarning(str(err))
 
     def pushFiles(self):
@@ -186,7 +187,7 @@ class UI(tk.Tk):
             passwd = self.token.get()
             for filename in filedialog.askopenfilenames(title=self.title()):
                 self.pushFile(filename, passwd)
-        except Exception as err:
+        except (OSError, AssertionError) as err:
             self.showwarning(str(err))
 
     @withThread
@@ -203,7 +204,7 @@ class UI(tk.Tk):
         try:
             pro = self.start_toplever(f"Uploading - {getFilename(fn)}")
             self.showinfo(self.client_socket.insert(fn, passwd, callback=pushCallBack))
-        except Exception as err:
+        except (OSError, AssertionError) as err:
             self.showwarning(str(err))
         else:
             self.updateList()
@@ -231,17 +232,17 @@ class UI(tk.Tk):
                 self.showinfo("Install Ok.")
             else:
                 self.showinfo(ret.decode())
-        except Exception as err:
+        except (OSError, AssertionError) as err:
             self.showwarning(str(err))
         finally:
             self.close_toplever(toplevel)
 
-    def start_toplever(self, title: str = None):
+    def start_toplever(self, title: Union[str, None] = None):
         tl = ProgressbarToplevel(self, self.title() if title is None else title)
         self.toplever_table.add(tl)
         return tl
 
-    @ignoreExceptions(Exception)
+    @ignoreExceptions((OSError, AssertionError))
     def close_toplever(self, toplevel: ProgressbarToplevel):
         if toplevel is not None:
             toplevel.destroy()
@@ -249,9 +250,7 @@ class UI(tk.Tk):
 
     def update_toplever(self):
         for tp in self.toplever_table.copy():
-            if tp.winfo_exists():
-                tp.letTop()
-            else:
+            if tp.letTop():
                 self.toplever_table.remove(tp)
 
     def showinfo(self, msg: str):

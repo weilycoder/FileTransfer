@@ -7,8 +7,8 @@ class Client:
         hostname: str = "localhost",
         post: int = 8080,
         *,
-        client_timeout: float = None,
-        bufsize: int = None
+        client_timeout: Union[float, None] = None,
+        bufsize: Union[int, None] = None,
     ):
         self.address = (hostname, post)
         self.timeout = CLI_TIMEOUT if client_timeout is None else client_timeout
@@ -49,10 +49,9 @@ class Client:
             cli = self.requset_head(type="test")
             code = cli.recv(self.bufsize)
             code = json.loads(code.decode())
-            assert code == self.ver_info
+            assert code == self.ver_info, SETTING_DIFF
+        finally:
             cli.close()
-        except AssertionError:
-            raise Exception(SETTING_DIFF)
 
     def list(self):
         cli = self.requset_head(type="list")
@@ -66,7 +65,7 @@ class Client:
         filepath: str,
         passwd: str = "",
         *,
-        callback: typing.Callable[[int, int], None] = lambda sent, size: None
+        callback: Callable[[int, int], None] = lambda sent, size: None,
     ):
         file = getFilename(filepath)
         cli = self.requset_head(type="insert", file=file, passwd=passwd)

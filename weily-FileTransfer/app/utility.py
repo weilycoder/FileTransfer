@@ -5,6 +5,7 @@ import os.path
 import threading
 import typing
 
+from typing import *  # type: ignore
 from functools import wraps
 
 
@@ -60,7 +61,7 @@ def getFilename(path: str):
     return path.replace("\\", "/").split("/")[-1]
 
 
-def withThread(function: typing.Callable[..., typing.Any]):
+def withThread(function: Callable[..., Any]):
     @wraps(function)
     def wrapper(*args, **kwargs):
         thread = threading.Thread(
@@ -72,8 +73,11 @@ def withThread(function: typing.Callable[..., typing.Any]):
     return wrapper
 
 
-def ignoreExceptions(error: typing.Type[BaseException], codeWhenError: typing.Any = None):
-    def decorator(function: typing.Callable[..., typing.Any]):
+def ignoreExceptions(
+    error: Union[Type[BaseException], Tuple[Type[BaseException], ...]],
+    codeWhenError: Any = None,
+):
+    def decorator(function: Callable[..., Any]):
         @wraps(function)
         def warpper(*args, **kwargs):
             try:

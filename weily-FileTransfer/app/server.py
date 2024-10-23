@@ -20,7 +20,7 @@ class DFile:
 
     @property
     def filesize(self):
-        return os.fstat(self.temp.fileno()).st_size
+        return 0 if self.temp is None else os.fstat(self.temp.fileno()).st_size
 
     def closed(self):
         return self.temp is None
@@ -49,18 +49,18 @@ class DFile:
 
 
 class Server:
-    file_table: typing.Dict[str, DFile]
+    file_table: Dict[str, DFile]
 
     def __init__(
         self,
         hostname: str = "localhost",
         post: int = 8080,
         backlog: int = 16,
-        client_timeout: float = None,
+        client_timeout: Union[float, None] = None,
         *,
-        super_passwd: str = None,
-        bufsize: int = None,
-        logger: typing.Callable[..., None] = print,
+        super_passwd: Union[str, None] = None,
+        bufsize: Union[int, None] = None,
+        logger: Callable[..., None] = print,
     ):
         self.file_table = {}
         self.file_pre = set()
@@ -106,7 +106,7 @@ class Server:
             fd = DFile(passwd.encode())
             ns = str(client.getpeername())
             client.send(OK)
-            for p, q in self.recv_file(client, fd.temp):
+            for p, q in self.recv_file(client, fd.temp):  # type: ignore
                 self.logger(ns, f"{p}/{q}")
             self.file_table[file] = fd
             client.sendall(OK)

@@ -2,9 +2,9 @@ import sys
 import argparse
 
 try:
-    from app import *
+    from app import Server, UI, wait
 except ImportError:
-    from .app import *
+    from app import Server, UI, wait
 
 
 if __name__ == "__main__":
