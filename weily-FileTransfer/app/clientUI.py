@@ -71,6 +71,8 @@ class UI(tk.Tk):
         self.token = tk.StringVar(self)
         self.host = tk.StringVar(self, host)
         self.post = tk.StringVar(self, str(post))
+        self.ignoreInfo = tk.IntVar(self, 0)
+        self.ignoreWarn = tk.IntVar(self, 0)
         self.client_socket = self.newClient()
         self.initUI()
 
@@ -86,8 +88,9 @@ class UI(tk.Tk):
         self.initListboxWithBar().place(
             relx=0.0, rely=0.0, relwidth=1.0, relheight=0.75
         )
-        self.initButtons().place(relx=0.04, rely=0.8, relwidth=0.32, relheight=0.15)
-        self.initLinkCon().place(relx=0.38, rely=0.8, relwidth=0.5, relheight=0.15)
+        self.initButtons().place(relx=0.02, rely=0.8, relwidth=0.28, relheight=0.15)
+        self.initLinkCon().place(relx=0.32, rely=0.8, relwidth=0.48, relheight=0.15)
+        self.initCheckBut().place(relx=0.82, rely=0.8, relwidth=0.16, relheight=0.15)
         self.mainloop()
 
     def initListboxWithBar(self):
@@ -96,7 +99,7 @@ class UI(tk.Tk):
         root = ttk.Frame(self)
         ytableScrollbar = ttk.Scrollbar(root, cursor="hand2")
         self.table = tk.Listbox(
-            root, yscrollcommand=ytableScrollbar, listvariable=self.data # type: ignore
+            root, yscrollcommand=ytableScrollbar, listvariable=self.data  # type: ignore
         )
         ytableScrollbar.config(command=self.table.yview)
         self.table.place(relx=0.0, rely=0.0, relwidth=BOXWID, relheight=1.0)
@@ -147,6 +150,16 @@ class UI(tk.Tk):
         )
         return root
 
+    def initCheckBut(self):
+        root = ttk.Frame(self, relief="groove")
+        ttk.Checkbutton(root, text="ignore info", variable=self.ignoreInfo).place(
+            relx=0.05, rely=0.2, relwidth=0.9, relheight=0.3
+        )
+        ttk.Checkbutton(root, text="ignore warn", variable=self.ignoreWarn).place(
+            relx=0.05, rely=0.5, relwidth=0.9, relheight=0.3
+        )
+        return root
+
     def getSelFile(self):
         sel = self.table.curselection()
         assert sel, "No item selected."
@@ -166,7 +179,7 @@ class UI(tk.Tk):
     def updateList(self):
         try:
             self.update()
-            self.data.set(str(self.client_socket.list()))
+            self.data.set(self.client_socket.list())  # type: ignore
             self.table.selection_clear(0, self.table.size() - 1)
             self.update_toplever()
         except (OSError, AssertionError) as err:
@@ -254,10 +267,12 @@ class UI(tk.Tk):
                 self.toplever_table.remove(tp)
 
     def showinfo(self, msg: str):
-        messagebox.showinfo(self.title(), msg)
+        if not self.ignoreInfo.get():
+            messagebox.showinfo(self.title(), msg)
 
     def showwarning(self, msg: str):
-        messagebox.showwarning(self.title(), msg)
+        if not self.ignoreWarn.get():
+            messagebox.showwarning(self.title(), msg)
 
 
 if __name__ == "__main__":
