@@ -194,11 +194,13 @@ class UI(tk.Tk):
             self.block_button(UI_BLOCK)
             passwd = self.token.get()
             item = self.getSelFile()
-            self.updateList(False).join()
             self.showinfo_fromServer(self.client_socket.erase(item, passwd))
         except (OSError, AssertionError) as err:
             self.showwarning(str(err))
+        finally:
+            self.updateList(False).join()
 
+    @withThread
     @logException(stdloggers.err_logger)
     def pushFiles(self):
         try:
@@ -293,8 +295,8 @@ class UI(tk.Tk):
         self.update()
 
     def block_button(self, ms: int):
-        self.disable_button()
         self.after(ms, func=self.enable_button)
+        self.disable_button()
 
     def showinfo_fromServer(self, msg: str):
         self.showinfo(msg) if msg.encode() == OK else self.showwarning(msg)
