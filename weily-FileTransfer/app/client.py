@@ -52,11 +52,13 @@ class Client:
         assert code == self.ver_info, SETTING_DIFF
 
     def list(self):
-        self.test()
-        cli = self.requset_head(type="list")
-        res = json.loads(recvs(cli, self.bufsize).decode())
-        cli.close()
-        assert type(res) is list
+        try:
+            cli = self.requset_head(type="list")
+            res = json.loads(recvs(cli, self.bufsize).decode())
+            cli.close()
+            assert type(res) is list
+        except Exception:
+            raise AssertionError(CANT_READ)
         return res
 
     def insert(

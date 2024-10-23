@@ -60,7 +60,7 @@ class Server:
         *,
         super_passwd: Union[str, None] = None,
         bufsize: Union[int, None] = None,
-        logger: Callable[..., None] = print,
+        logger: Callable[..., Any] = stdloggers.log_logger,
     ):
         self.file_table = {}
         self.file_pre = set()

@@ -1,8 +1,12 @@
+import io
 import os
+import sys
+import time
 import json
 import socket
 import os.path
 import threading
+import traceback
 import typing
 
 from typing import *  # type: ignore
@@ -31,15 +35,37 @@ FAIL_SEND = "Send failed."
 FAIL_LEN = "Length verification failed."
 
 
+class Loggers:
+    def __init__(self, file: typing.TextIO = sys.stderr):
+        self.file = file
+
+    @staticmethod
+    def ftime():
+        return f"{time.strftime('%Y-%m-%dT%H:%M:%S%z')} {time.monotonic():.3f}"
+
+    def err_logger(self, error: BaseException):
+        print(self.ftime())
+        print(*traceback.format_exception(type(error), error, error.__traceback__))
+
+    def log_logger(self, *args):
+        print(self.ftime(), *args)
+
+
+stdloggers = Loggers()
+
+
 def try_recv(client: socket.socket, bufsize: int):
     try:
         return client.recv(bufsize)
-    except:
+    except OSError:
         return b""
 
 
 def try_send(client: socket.socket, msg: bytes):
-    client.sendall(msg)
+    try:
+        client.sendall(msg)
+    except OSError:
+        pass
 
 
 def safe_send_head(client: socket.socket, msg: bytes, bufsize: int):
@@ -71,6 +97,20 @@ def withThread(function: Callable[..., Any]):
         return thread
 
     return wrapper
+
+
+def logException(logger: Callable[..., None]):
+    def decorator(function: Callable[..., Any]):
+        @wraps(function)
+        def warpper(*args, **kwargs):
+            try:
+                return function(*args, **kwargs)
+            except BaseException as err:
+                logger(err)
+
+        return warpper
+
+    return decorator
 
 
 def ignoreExceptions(

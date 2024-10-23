@@ -26,7 +26,7 @@ class ProgressbarToplevel(tk.Toplevel):
         self.progress_bar.place(relx=0.05, rely=0.25, relwidth=0.9, relheight=0.5)
         self.letTop()
 
-    @ignoreExceptions(tk.TclError, True)
+    @ignoreExceptions((tk.TclError, AssertionError), True)
     def run(self, value: int, maximum: int):
         assert self.winfo_exists()
         self.progress_bar.config(mode="determinate")
@@ -167,15 +167,18 @@ class UI(tk.Tk):
         return str(self.table.get((sel[0])))
 
     @withThread
+    @logException(stdloggers.err_logger)
     def testCon(self):
         try:
             self.client_socket = self.newClient()
             self.client_socket.test()
+            self.updateList().join()
             self.showinfo("Link Ok.")
-            self.updateList()
         except (OSError, AssertionError) as err:
             self.showwarning(str(err))
 
+    @withThread
+    @logException(stdloggers.err_logger)
     def updateList(self):
         try:
             self.update()
@@ -185,15 +188,18 @@ class UI(tk.Tk):
         except (OSError, AssertionError) as err:
             self.showwarning(str(err))
 
+    @withThread
+    @logException(stdloggers.err_logger)
     def eraseFile(self):
         try:
             passwd = self.token.get()
             item = self.getSelFile()
+            self.updateList().join()
             self.showinfo(self.client_socket.erase(item, passwd))
-            self.updateList()
         except (OSError, AssertionError) as err:
             self.showwarning(str(err))
 
+    @logException(stdloggers.err_logger)
     def pushFiles(self):
         try:
             self.client_socket.test()
@@ -204,8 +210,9 @@ class UI(tk.Tk):
             self.showwarning(str(err))
 
     @withThread
+    @logException(stdloggers.err_logger)
     def pushFile(self, fn: str, passwd: str):
-        @ignoreExceptions(Exception, True)
+        @ignoreExceptions(tk.TclError, True)
         def pushCallBack(sent: int, size: int):
             if not size or not pro.winfo_exists():
                 self.close_toplever(pro)
@@ -220,7 +227,7 @@ class UI(tk.Tk):
         except (OSError, AssertionError) as err:
             self.showwarning(str(err))
         else:
-            self.updateList()
+            self.updateList().join()
         finally:
             pushCallBack(0, 0)
 
@@ -255,11 +262,10 @@ class UI(tk.Tk):
         self.toplever_table.add(tl)
         return tl
 
-    @ignoreExceptions((OSError, AssertionError))
+    @ignoreExceptions((OSError, AssertionError, AttributeError, KeyError))
     def close_toplever(self, toplevel: ProgressbarToplevel):
-        if toplevel is not None:
-            toplevel.destroy()
-            self.toplever_table.remove(toplevel)
+        toplevel.destroy()
+        self.toplever_table.remove(toplevel)
 
     def update_toplever(self):
         for tp in self.toplever_table.copy():
