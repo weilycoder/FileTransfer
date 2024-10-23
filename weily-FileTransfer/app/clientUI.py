@@ -98,9 +98,9 @@ class UI(tk.Tk):
         BARWID = 0.02
         BOXWID = 1 - BARWID
         root = ttk.Frame(self)
-        ytableScrollbar = ttk.Scrollbar(root, cursor="hand2")
+        ytableScrollbar = ttk.Scrollbar(root)
         self.table = tk.Listbox(
-            root, yscrollcommand=ytableScrollbar, listvariable=self.data  # type: ignore
+            root, yscrollcommand=ytableScrollbar.set, listvariable=self.data  # type: ignore
         )
         ytableScrollbar.config(command=self.table.yview)
         self.table.place(relx=0.0, rely=0.0, relwidth=BOXWID, relheight=1.0)
@@ -271,6 +271,7 @@ class UI(tk.Tk):
         toplevel.destroy()
         self.toplever_table.remove(toplevel)
 
+    @ignoreExceptions((AttributeError, KeyError))
     def update_toplever(self):
         for tp in self.toplever_table.copy():
             if tp.letTop():
