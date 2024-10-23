@@ -56,8 +56,8 @@ class Client:
             cli = self.requset_head(type="list")
             res = json.loads(recvs(cli, self.bufsize).decode())
             cli.close()
-            assert type(res) is list
-        except Exception:
+            assert type(res) is list, CANT_READ
+        except json.JSONDecodeError:
             raise AssertionError(CANT_READ)
         return res
 

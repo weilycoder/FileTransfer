@@ -37,6 +37,8 @@ FAIL_LEN = "Length verification failed."
 INFO = "[INFO]"
 WARN = "[WARN]"
 
+UI_BLOCK = 100
+
 
 class Loggers:
     def __init__(self, file: typing.TextIO = sys.stderr):

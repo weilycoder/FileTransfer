@@ -48,6 +48,7 @@ class ProgressbarToplevel(tk.Toplevel):
 
 
 class UI(tk.Tk):
+    button_list: List[ttk.Button]
     toplever_table: Set[ProgressbarToplevel]
 
     def __init__(
@@ -66,6 +67,7 @@ class UI(tk.Tk):
         self.title(title)
         self.geometry(f"{width}x{height}")
         self.bufsize = bufsize
+        self.button_list = []
         self.toplever_table = set()
         self.data = tk.StringVar(self)
         self.token = tk.StringVar(self)
@@ -110,18 +112,14 @@ class UI(tk.Tk):
         BWID, BHEI = 0.5 - DX, 0.5 - DY
         BX, BY = 1 - BWID - DX, 1 - BHEI - DY
         root = ttk.Frame(self, relief="groove")
-        ttk.Button(root, text="Update", cursor="hand2", command=self.updateList).place(
-            relx=DX, rely=DY, relwidth=BWID, relheight=BHEI
-        )
-        ttk.Button(root, text="Upload", cursor="hand2", command=self.pushFiles).place(
-            relx=BX, rely=DY, relwidth=BWID, relheight=BHEI
-        )
-        ttk.Button(root, text="Delete", cursor="hand2", command=self.eraseFile).place(
-            relx=DX, rely=BY, relwidth=BWID, relheight=BHEI
-        )
-        ttk.Button(root, text="Download", cursor="hand2", command=self.download).place(
-            relx=BX, rely=BY, relwidth=BWID, relheight=BHEI
-        )
+        self.updateBtn = self.new_button(root, "Update", self.updateList)
+        self.uploadBtn = self.new_button(root, "Upload", self.pushFiles)
+        self.delBtn = self.new_button(root, "Delete", self.eraseFile)
+        self.downloadBtn = self.new_button(root, "Download", self.download)
+        self.updateBtn.place(relx=DX, rely=DY, relwidth=BWID, relheight=BHEI)
+        self.uploadBtn.place(relx=BX, rely=DY, relwidth=BWID, relheight=BHEI)
+        self.delBtn.place(relx=DX, rely=BY, relwidth=BWID, relheight=BHEI)
+        self.downloadBtn.place(relx=BX, rely=BY, relwidth=BWID, relheight=BHEI)
         return root
 
     def initLinkCon(self):
@@ -135,7 +133,7 @@ class UI(tk.Tk):
         ttk.Label(root, text="Token:", anchor="e").place(
             relx=0.17, rely=0.6, relwidth=0.14, relheight=0.33, anchor="ne"
         )
-        ttk.Button(root, text="Link", cursor="hand2", command=self.testCon).place(
+        self.new_button(root, "Link", self.testCon).place(
             relx=0.8, rely=0.067, relwidth=0.16, relheight=0.37
         )
         ttk.Entry(root, textvariable=self.host).place(
@@ -169,18 +167,20 @@ class UI(tk.Tk):
     @logException(stdloggers.err_logger)
     def testCon(self):
         try:
+            self.block_button(UI_BLOCK)
             self.client_socket = self.newClient()
             self.client_socket.test()
-            self.updateList().join()
+            self.updateList(False).join()
             self.showinfo("Link Ok.")
         except (OSError, AssertionError) as err:
             self.showwarning(str(err))
 
     @withThread
     @logException(stdloggers.err_logger)
-    def updateList(self):
+    def updateList(self, is_button: bool = True):
         try:
-            self.update()
+            if is_button:
+                self.block_button(UI_BLOCK)
             self.data.set(self.client_socket.list())  # type: ignore
             self.table.selection_clear(0, self.table.size() - 1)
             self.update_toplever()
@@ -191,9 +191,10 @@ class UI(tk.Tk):
     @logException(stdloggers.err_logger)
     def eraseFile(self):
         try:
+            self.block_button(UI_BLOCK)
             passwd = self.token.get()
             item = self.getSelFile()
-            self.updateList().join()
+            self.updateList(False).join()
             self.showinfo_fromServer(self.client_socket.erase(item, passwd))
         except (OSError, AssertionError) as err:
             self.showwarning(str(err))
@@ -201,6 +202,7 @@ class UI(tk.Tk):
     @logException(stdloggers.err_logger)
     def pushFiles(self):
         try:
+            self.block_button(UI_BLOCK)
             self.client_socket.test()
             passwd = self.token.get()
             for filename in filedialog.askopenfilenames(title=self.title()):
@@ -222,11 +224,13 @@ class UI(tk.Tk):
 
         try:
             pro = self.start_toplever(f"Uploading - {getFilename(fn)}")
-            self.showinfo_fromServer(self.client_socket.insert(fn, passwd, callback=pushCallBack))
+            self.showinfo_fromServer(
+                self.client_socket.insert(fn, passwd, callback=pushCallBack)
+            )
         except (OSError, AssertionError) as err:
             self.showwarning(str(err))
         else:
-            self.updateList().join()
+            self.updateList(False).join()
         finally:
             pushCallBack(0, 0)
 
@@ -234,6 +238,7 @@ class UI(tk.Tk):
     def download(self):
         toplevel = None
         try:
+            self.block_button(UI_BLOCK)
             passwd = self.token.get()
             item = self.getSelFile()
             toplevel = self.start_toplever(f"Download - {item}")
@@ -270,6 +275,25 @@ class UI(tk.Tk):
         for tp in self.toplever_table.copy():
             if tp.letTop():
                 self.toplever_table.remove(tp)
+
+    def new_button(self, master: tk.Misc, text: str, command: Callable[[], Any]):
+        btn = ttk.Button(master, cursor="hand2", text=text, command=command)
+        self.button_list.append(btn)
+        return btn
+
+    def enable_button(self):
+        for btn in self.button_list:
+            btn.config(state="normal")
+        self.update()
+
+    def disable_button(self):
+        for btn in self.button_list:
+            btn.config(state="disabled")
+        self.update()
+
+    def block_button(self, ms: int):
+        self.disable_button()
+        self.after(ms, func=self.enable_button)
 
     def showinfo_fromServer(self, msg: str):
         self.showinfo(msg) if msg.encode() == OK else self.showwarning(msg)
