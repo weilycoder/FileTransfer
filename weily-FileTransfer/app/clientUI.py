@@ -91,7 +91,6 @@ class UI(tk.Tk):
         self.initButtons().place(relx=0.02, rely=0.8, relwidth=0.28, relheight=0.15)
         self.initLinkCon().place(relx=0.32, rely=0.8, relwidth=0.48, relheight=0.15)
         self.initCheckBut().place(relx=0.82, rely=0.8, relwidth=0.16, relheight=0.15)
-        self.mainloop()
 
     def initListboxWithBar(self):
         BARWID = 0.02
@@ -195,7 +194,7 @@ class UI(tk.Tk):
             passwd = self.token.get()
             item = self.getSelFile()
             self.updateList().join()
-            self.showinfo(self.client_socket.erase(item, passwd))
+            self.showinfo_fromServer(self.client_socket.erase(item, passwd))
         except (OSError, AssertionError) as err:
             self.showwarning(str(err))
 
@@ -223,7 +222,7 @@ class UI(tk.Tk):
 
         try:
             pro = self.start_toplever(f"Uploading - {getFilename(fn)}")
-            self.showinfo(self.client_socket.insert(fn, passwd, callback=pushCallBack))
+            self.showinfo_fromServer(self.client_socket.insert(fn, passwd, callback=pushCallBack))
         except (OSError, AssertionError) as err:
             self.showwarning(str(err))
         else:
@@ -251,7 +250,7 @@ class UI(tk.Tk):
                     f.write(ret)
                 self.showinfo("Install Ok.")
             else:
-                self.showinfo(ret.decode())
+                self.showinfo_fromServer(ret.decode())
         except (OSError, AssertionError) as err:
             self.showwarning(str(err))
         finally:
@@ -272,13 +271,20 @@ class UI(tk.Tk):
             if tp.letTop():
                 self.toplever_table.remove(tp)
 
+    def showinfo_fromServer(self, msg: str):
+        self.showinfo(msg) if msg.encode() == OK else self.showwarning(msg)
+
     def showinfo(self, msg: str):
         if not self.ignoreInfo.get():
             messagebox.showinfo(self.title(), msg)
+        else:
+            stdloggers.log_logger(msg, before=INFO)
 
     def showwarning(self, msg: str):
         if not self.ignoreWarn.get():
             messagebox.showwarning(self.title(), msg)
+        else:
+            stdloggers.log_logger(msg, before=WARN)
 
 
 if __name__ == "__main__":

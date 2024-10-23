@@ -55,5 +55,6 @@ if __name__ == "__main__":
                 client_timeout=args.timeout,
                 bufsize=args.buf,
             )
+            app.mainloop()
     except Exception as err:
         print(err, file=sys.stderr)

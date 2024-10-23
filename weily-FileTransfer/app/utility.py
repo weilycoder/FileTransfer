@@ -34,6 +34,9 @@ FAIL_REQ = "Request failed."
 FAIL_SEND = "Send failed."
 FAIL_LEN = "Length verification failed."
 
+INFO = "[INFO]"
+WARN = "[WARN]"
+
 
 class Loggers:
     def __init__(self, file: typing.TextIO = sys.stderr):
@@ -47,8 +50,11 @@ class Loggers:
         print(self.ftime())
         print(*traceback.format_exception(type(error), error, error.__traceback__))
 
-    def log_logger(self, *args):
-        print(self.ftime(), *args)
+    def log_logger(self, *args, before: Union[str, None] = None):
+        if before is None:
+            print(self.ftime(), *args)
+        else:
+            print(before, self.ftime(), *args)
 
 
 stdloggers = Loggers()
