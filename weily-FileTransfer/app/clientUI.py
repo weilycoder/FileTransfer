@@ -194,9 +194,9 @@ class UI(tk.Tk):
             self.block_button(UI_BLOCK)
             passwd = self.token.get()
             item = self.getSelFile()
-            self.showinfo_fromServer(self.client_socket.erase(item, passwd))
+            self.showinfo_fromServer(self.client_socket.erase(item, passwd), item)
         except (OSError, AssertionError) as err:
-            self.showwarning(str(err))
+            self.showwarning(str(err), item)
         finally:
             self.updateList(False).join()
 
@@ -227,14 +227,14 @@ class UI(tk.Tk):
         try:
             pro = self.start_toplever(f"Uploading - {getFilename(fn)}")
             self.showinfo_fromServer(
-                self.client_socket.insert(fn, passwd, callback=pushCallBack)
+                self.client_socket.insert(fn, passwd, callback=pushCallBack),
+                getFilename(fn),
             )
         except (OSError, AssertionError) as err:
-            self.showwarning(str(err))
-        else:
-            self.updateList(False).join()
+            self.showwarning(str(err), getFilename(fn))
         finally:
             pushCallBack(0, 0)
+            self.updateList(False).join()
 
     @withThread
     def download(self):
@@ -247,7 +247,7 @@ class UI(tk.Tk):
             toplevel.start()
             ret = self.client_socket.get(item, passwd)
             if not toplevel.winfo_exists():
-                self.showinfo("Abort.")
+                self.showinfo("Abort.", item)
             elif not ret[-1]:
                 ret.pop()
                 fn = filedialog.asksaveasfilename(title=self.title(), initialfile=item)
@@ -255,11 +255,11 @@ class UI(tk.Tk):
                     return
                 with open(fn, "wb") as f:
                     f.write(ret)
-                self.showinfo("Install Ok.")
+                self.showinfo("Install Ok.", item)
             else:
-                self.showinfo_fromServer(ret.decode())
+                self.showinfo_fromServer(ret.decode(), item)
         except (OSError, AssertionError) as err:
-            self.showwarning(str(err))
+            self.showwarning(str(err), item)
         finally:
             self.close_toplever(toplevel)
 
@@ -298,16 +298,20 @@ class UI(tk.Tk):
         self.after(ms, func=self.enable_button)
         self.disable_button()
 
-    def showinfo_fromServer(self, msg: str):
-        self.showinfo(msg) if msg.encode() == OK else self.showwarning(msg)
+    def showinfo_fromServer(self, msg: str, source: Union[str, None] = None):
+        (self.showinfo if msg.encode() == OK else self.showwarning)(msg, source)
 
-    def showinfo(self, msg: str):
+    def showinfo(self, msg: str, source: Union[str, None] = None):
+        if source is not None:
+            msg = f"{source}: {msg}"
         if not self.ignoreInfo.get():
             messagebox.showinfo(self.title(), msg)
         else:
             stdloggers.log_logger(msg, before=INFO)
 
-    def showwarning(self, msg: str):
+    def showwarning(self, msg: str, source: Union[str, None] = None):
+        if source is not None:
+            msg = f"{source}: {msg}"
         if not self.ignoreWarn.get():
             messagebox.showwarning(self.title(), msg)
         else:
