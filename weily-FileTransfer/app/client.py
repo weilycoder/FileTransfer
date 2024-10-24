@@ -7,8 +7,8 @@ class Client:
         hostname: str = "localhost",
         post: int = 8080,
         *,
-        client_timeout: Union[float, None] = None,
-        bufsize: Union[int, None] = None,
+        client_timeout: Optional[float] = None,
+        bufsize: Optional[int] = None,
     ):
         self.address = (hostname, post)
         self.timeout = CLI_TIMEOUT if client_timeout is None else client_timeout
@@ -51,15 +51,15 @@ class Client:
         cli.close()
         assert code == self.ver_info, SETTING_DIFF
 
-    def list(self):
+    def list(self) -> List[str]:
         try:
             cli = self.requset_head(type="list")
             res = json.loads(recvs(cli, self.bufsize).decode())
             cli.close()
-            assert type(res) is list, CANT_READ
-        except json.JSONDecodeError:
+            assert is_instance_of(res, List[str]), CANT_READ
+            return res
+        except (json.JSONDecodeError, TypeError):
             raise AssertionError(CANT_READ)
-        return res
 
     def insert(
         self,

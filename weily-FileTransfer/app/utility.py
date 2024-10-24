@@ -52,7 +52,7 @@ class Loggers:
         print(self.ftime())
         print(*traceback.format_exception(type(error), error, error.__traceback__))
 
-    def log_logger(self, *args, before: Union[str, None] = None):
+    def log_logger(self, *args, before: Optional[str] = None):
         if before is None:
             print(self.ftime(), *args)
         else:
@@ -119,6 +119,56 @@ def logException(logger: Callable[..., None]):
         return warpper
 
     return decorator
+
+
+def is_instance_of(obj: Any, type_annotation: Any) -> bool:
+    if type_annotation is ... or isinstance(type_annotation, TypeVar):
+        return True
+
+    if not hasattr(type_annotation, "__origin__"):
+        return isinstance(obj, type_annotation)
+
+    origin = type_annotation.__origin__
+    args = type_annotation.__args__
+
+    if origin is list or origin is List:
+        return isinstance(obj, list) and all(
+            is_instance_of(item, args[0]) for item in obj
+        )
+
+    if origin is dict or origin is Dict:
+        key_type, value_type = args
+        return isinstance(obj, dict) and all(
+            is_instance_of(k, key_type) and is_instance_of(v, value_type)
+            for k, v in obj.items()
+        )
+
+    if origin is tuple or origin is Tuple:
+        if len(args) == 2 and args[1] is ...:
+            return isinstance(obj, tuple) and all(
+                is_instance_of(item, args[0]) for item in obj
+            )
+        else:
+            return (
+                isinstance(obj, tuple)
+                and len(obj) == len(args)
+                and all(is_instance_of(item, arg) for item, arg in zip(obj, args))
+            )
+
+    if origin is set or origin is Set:
+        return isinstance(obj, set) and all(
+            is_instance_of(item, args[0]) for item in obj
+        )
+
+    if origin is frozenset or origin is FrozenSet:
+        return isinstance(obj, frozenset) and all(
+            is_instance_of(item, args[0]) for item in obj
+        )
+
+    if origin is Union:
+        return any(is_instance_of(obj, arg) for arg in args)
+
+    return False
 
 
 def ignoreExceptions(

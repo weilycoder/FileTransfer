@@ -7,7 +7,7 @@ from .client import *
 class ProgressbarToplevel(tk.Toplevel):
     def __init__(
         self,
-        master: Union[tk.Misc, None] = None,
+        master: Optional[tk.Misc] = None,
         title: str = "",
         width=360,
         height=50,
@@ -59,8 +59,8 @@ class UI(tk.Tk):
         *,
         host: str = "localhost",
         post: int = 8080,
-        client_timeout: Union[float, None] = None,
-        bufsize: Union[int, None] = None,
+        client_timeout: Optional[float] = None,
+        bufsize: Optional[int] = None,
     ):
         super().__init__()
         self.timeout = client_timeout
@@ -263,7 +263,7 @@ class UI(tk.Tk):
         finally:
             self.close_toplever(toplevel)
 
-    def start_toplever(self, title: Union[str, None] = None):
+    def start_toplever(self, title: Optional[str] = None):
         tl = ProgressbarToplevel(self, self.title() if title is None else title)
         self.toplever_table.add(tl)
         return tl
@@ -298,10 +298,10 @@ class UI(tk.Tk):
         self.after(ms, func=self.enable_button)
         self.disable_button()
 
-    def showinfo_fromServer(self, msg: str, source: Union[str, None] = None):
+    def showinfo_fromServer(self, msg: str, source: Optional[str] = None):
         (self.showinfo if msg.encode() == OK else self.showwarning)(msg, source)
 
-    def showinfo(self, msg: str, source: Union[str, None] = None):
+    def showinfo(self, msg: str, source: Optional[str] = None):
         if source is not None:
             msg = f"{source}: {msg}"
         if not self.ignoreInfo.get():
@@ -309,7 +309,7 @@ class UI(tk.Tk):
         else:
             stdloggers.log_logger(msg, before=INFO)
 
-    def showwarning(self, msg: str, source: Union[str, None] = None):
+    def showwarning(self, msg: str, source: Optional[str] = None):
         if source is not None:
             msg = f"{source}: {msg}"
         if not self.ignoreWarn.get():

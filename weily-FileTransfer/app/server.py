@@ -56,10 +56,10 @@ class Server:
         hostname: str = "localhost",
         post: int = 8080,
         backlog: int = 16,
-        client_timeout: Union[float, None] = None,
+        client_timeout: Optional[float] = None,
         *,
-        super_passwd: Union[str, None] = None,
-        bufsize: Union[int, None] = None,
+        super_passwd: Optional[str] = None,
+        bufsize: Optional[int] = None,
         logger: Callable[..., Any] = stdloggers.log_logger,
     ):
         self.file_table = {}
