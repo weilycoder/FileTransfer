@@ -100,6 +100,7 @@ class UI(tk.Tk):
         BOXWID = 1 - BARWID
         root = ttk.Frame(self)
         ytableScrollbar = ttk.Scrollbar(root)
+        self.tree_lock = threading.Lock()
         self.tree = ttk.Treeview(root, yscrollcommand=ytableScrollbar.set)
         self.tree["columns"] = ("#1", "#2")
         self.tree.column("#0", width=0, stretch=tk.NO)
@@ -167,10 +168,11 @@ class UI(tk.Tk):
         return str(self.tree.item(sel[0], "values")[0])
 
     def set_data(self, table: List[Tuple[str, int]]):
-        for item in self.tree.get_children():
-            self.tree.delete(item)
-        for file, size in table:
-            self.tree.insert("", tk.END, values=(file, format_size(size)))
+        with self.tree_lock:
+            for item in self.tree.get_children():
+                self.tree.delete(item)
+            for file, size in table:
+                self.tree.insert("", tk.END, values=(file, format_size(size)))
 
     @withThread
     @logException(stdloggers.err_logger)
