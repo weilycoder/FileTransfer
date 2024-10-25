@@ -48,6 +48,7 @@ class ProgressbarToplevel(tk.Toplevel):
 
 
 class UI(tk.Tk):
+    data: List[Tuple[str, int]]
     button_list: List[ttk.Button]
     toplever_table: Set[ProgressbarToplevel]
 
@@ -67,9 +68,9 @@ class UI(tk.Tk):
         self.title(title)
         self.geometry(f"{width}x{height}")
         self.bufsize = bufsize
+        self.data = []
         self.button_list = []
         self.toplever_table = set()
-        self.data = tk.StringVar(self)
         self.token = tk.StringVar(self)
         self.host = tk.StringVar(self, host)
         self.post = tk.StringVar(self, str(post))
@@ -99,11 +100,13 @@ class UI(tk.Tk):
         BOXWID = 1 - BARWID
         root = ttk.Frame(self)
         ytableScrollbar = ttk.Scrollbar(root)
-        self.table = tk.Listbox(
-            root, yscrollcommand=ytableScrollbar.set, listvariable=self.data  # type: ignore
-        )
-        ytableScrollbar.config(command=self.table.yview)
-        self.table.place(relx=0.0, rely=0.0, relwidth=BOXWID, relheight=1.0)
+        self.tree = ttk.Treeview(root, yscrollcommand=ytableScrollbar.set)
+        self.tree["columns"] = ("#1", "#2")
+        self.tree.column("#0", width=0, stretch=tk.NO)
+        self.tree.heading("#1", text="File", anchor=tk.W)
+        self.tree.heading("#2", text="Size", anchor=tk.W)
+        ytableScrollbar.config(command=self.tree.yview)
+        self.tree.place(relx=0.0, rely=0.0, relwidth=BOXWID, relheight=1.0)
         ytableScrollbar.place(relx=BOXWID, rely=0.0, relwidth=BARWID, relheight=1.0)
         return root
 
@@ -158,10 +161,16 @@ class UI(tk.Tk):
         return root
 
     def getSelFile(self):
-        sel = self.table.curselection()
+        sel = self.tree.selection()
         assert sel, "No item selected."
         assert len(sel) == 1, "Too many items selected."
-        return str(self.table.get((sel[0])))
+        return str(self.tree.item(sel[0], "values")[0])
+
+    def set_data(self, table: List[Tuple[str, int]]):
+        for item in self.tree.get_children():
+            self.tree.delete(item)
+        for file, size in table:
+            self.tree.insert("", tk.END, values=(file, format_size(size)))
 
     @withThread
     @logException(stdloggers.err_logger)
@@ -181,8 +190,8 @@ class UI(tk.Tk):
         try:
             if is_button:
                 self.block_button(UI_BLOCK)
-            self.data.set(self.client_socket.list())  # type: ignore
-            self.table.selection_clear(0, self.table.size() - 1)
+            self.set_data(self.client_socket.list())
+            self.tree.selection_set(())
             self.update_toplever()
         except (OSError, AssertionError) as err:
             self.showwarning(str(err))

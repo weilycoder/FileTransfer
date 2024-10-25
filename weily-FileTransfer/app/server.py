@@ -20,14 +20,21 @@ class DFile:
 
     @property
     def filesize(self):
-        return 0 if self.temp is None else os.fstat(self.temp.fileno()).st_size
+        if self.temp is None:
+            return 0
+        self.temp.flush()
+        return os.fstat(self.temp.fileno()).st_size
+
+    @property
+    def no_passwd(self):
+        return checkHash(b"", self.passwd)
 
     def closed(self):
         return self.temp is None
 
     def check(self, passwd: bytes = b""):
         return (
-            checkHash(b"", self.passwd)
+            self.no_passwd
             or checkHash(passwd, self.passwd)
             or checkHash(passwd, DFile.super_passwd)
         )
@@ -91,11 +98,14 @@ class Server:
             yield sent, size
         assert sent == size, FAIL_LEN
 
+    def get_list(self):
+        return [(k, self.file_table[k].filesize) for k in self.file_table]
+
     def REQ_test(self, client: socket.socket, type: str):
         client.sendall(json.dumps(self.ver_info).encode())
 
     def REQ_list(self, client: socket.socket, type: str):
-        client.sendall(json.dumps(list(self.file_table)).encode())
+        client.sendall(json.dumps(self.get_list()).encode())
 
     def REQ_insert(
         self, client: socket.socket, type: str, *, file: str, passwd: str = ""

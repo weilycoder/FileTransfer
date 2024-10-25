@@ -51,12 +51,13 @@ class Client:
         cli.close()
         assert code == self.ver_info, SETTING_DIFF
 
-    def list(self) -> List[str]:
+    def list(self):
         try:
             cli = self.requset_head(type="list")
             res = json.loads(recvs(cli, self.bufsize).decode())
             cli.close()
-            assert is_instance_of(res, List[str]), CANT_READ
+            assert is_instance_of(res, List[Tuple[str, int]]), CANT_READ
+            res: List[Tuple[str, int]]
             return res
         except (json.JSONDecodeError, TypeError):
             raise AssertionError(CANT_READ)

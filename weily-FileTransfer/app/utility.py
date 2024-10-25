@@ -13,7 +13,7 @@ from typing import *  # type: ignore
 from functools import wraps
 
 
-VERSION = "0.2.1"
+VERSION = "0.3.0"
 VERSION_DIFF = "The server and client versions are different."
 SETTING_DIFF = "The communication settings between the server and client are different."
 
@@ -95,6 +95,19 @@ def getFilename(path: str):
     return path.replace("\\", "/").split("/")[-1]
 
 
+def format_size(size_bytes: Union[int, float]):
+    units = ["B", "KB", "MB", "GB", "TB", "PB", "EB"]
+    if size_bytes == 0:
+        return "0 B"
+
+    index = 0
+    while size_bytes >= 1024 and index < len(units) - 1:
+        size_bytes /= 1024.0
+        index += 1
+
+    return f"{size_bytes:.2f} {units[index]}"
+
+
 def withThread(function: Callable[..., Any]):
     @wraps(function)
     def wrapper(*args, **kwargs):
@@ -121,7 +134,7 @@ def logException(logger: Callable[..., None]):
     return decorator
 
 
-def is_instance_of(obj: Any, type_annotation: Any) -> bool:
+def is_instance_of(obj: Any, type_annotation: Any, *, strict: bool = False) -> bool:
     if type_annotation is ... or isinstance(type_annotation, TypeVar):
         return True
 
@@ -145,12 +158,12 @@ def is_instance_of(obj: Any, type_annotation: Any) -> bool:
 
     if origin is tuple or origin is Tuple:
         if len(args) == 2 and args[1] is ...:
-            return isinstance(obj, tuple) and all(
+            return isinstance(obj, tuple if strict else (list, tuple)) and all(
                 is_instance_of(item, args[0]) for item in obj
             )
         else:
             return (
-                isinstance(obj, tuple)
+                isinstance(obj, tuple if strict else (list, tuple))
                 and len(obj) == len(args)
                 and all(is_instance_of(item, arg) for item, arg in zip(obj, args))
             )
