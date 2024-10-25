@@ -49,14 +49,14 @@ class Loggers:
         return f"{time.strftime('%Y-%m-%dT%H:%M:%S%z')} {time.monotonic():.3f}"
 
     def err_logger(self, error: BaseException):
-        print(self.ftime())
-        print(*traceback.format_exception(type(error), error, error.__traceback__))
+        print(self.ftime(), file=self.file)
+        print(*traceback.format_exception(type(error), error, error.__traceback__), file=self.file)
 
     def log_logger(self, *args, before: Optional[str] = None):
         if before is None:
-            print(self.ftime(), *args)
+            print(self.ftime(), *args, file=self.file)
         else:
-            print(before, self.ftime(), *args)
+            print(before, self.ftime(), *args, file=self.file)
 
 
 stdloggers = Loggers()
