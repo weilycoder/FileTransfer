@@ -326,7 +326,7 @@ class UI(tk.Tk):
         if not self.ignoreWarn.get():
             messagebox.showwarning(self.title(), msg)
         else:
-            stdloggers.log_logger(msg, before=WARN)
+            stdloggers.warn_logger(msg, before=WARN)
 
 
 if __name__ == "__main__":
