@@ -99,7 +99,7 @@ class Server:
         assert sent == size, FAIL_LEN
 
     def get_list(self):
-        return [(k, self.file_table[k].filesize) for k in self.file_table]
+        return [(k, self.file_table[k].filesize) for k in self.file_table.copy()]
 
     def REQ_test(self, client: socket.socket, type: str):
         client.sendall(json.dumps(self.ver_info).encode())
