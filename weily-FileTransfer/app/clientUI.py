@@ -206,8 +206,10 @@ class UI(tk.Tk):
             passwd = self.token.get()
             item = self.getSelFile()
             self.showinfo_fromServer(self.client_socket.erase(item, passwd), item)
-        except (OSError, AssertionError) as err:
+        except OSError as err:
             self.showwarning(str(err), item)
+        except AssertionError as err:
+            self.showwarning(str(err))
         finally:
             self.updateList(False).join()
 
@@ -269,8 +271,10 @@ class UI(tk.Tk):
                 self.showinfo("Install Ok.", item)
             else:
                 self.showinfo_fromServer(ret.decode(), item)
-        except (OSError, AssertionError) as err:
+        except OSError as err:
             self.showwarning(str(err), item)
+        except AssertionError as err:
+            self.showwarning(str(err))
         finally:
             self.close_toplever(toplevel)
 
