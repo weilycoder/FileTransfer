@@ -41,22 +41,34 @@ UI_BLOCK = 100
 
 
 class Loggers:
-    def __init__(self, file: typing.TextIO = sys.stderr):
-        self.file = file
+    def __init__(
+        self, log_file: typing.TextIO = sys.stdout, err_file: typing.TextIO = sys.stderr
+    ):
+        self.log_file = log_file
+        self.err_file = err_file
 
     @staticmethod
     def ftime():
         return f"{time.strftime('%Y-%m-%dT%H:%M:%S%z')} {time.monotonic():.3f}"
 
     def err_logger(self, error: BaseException):
-        print(self.ftime(), file=self.file)
-        print(*traceback.format_exception(type(error), error, error.__traceback__), file=self.file)
+        print(self.ftime(), file=self.err_file)
+        print(
+            *traceback.format_exception(type(error), error, error.__traceback__),
+            file=self.err_file,
+        )
+
+    def warn_logger(self, *args, before: Optional[str] = None):
+        if before is None:
+            print(self.ftime(), *args, file=self.err_file)
+        else:
+            print(before, self.ftime(), *args, file=self.err_file)
 
     def log_logger(self, *args, before: Optional[str] = None):
         if before is None:
-            print(self.ftime(), *args, file=self.file)
+            print(self.ftime(), *args, file=self.log_file)
         else:
-            print(before, self.ftime(), *args, file=self.file)
+            print(before, self.ftime(), *args, file=self.log_file)
 
 
 stdloggers = Loggers()

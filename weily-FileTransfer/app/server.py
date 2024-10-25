@@ -67,7 +67,6 @@ class Server:
         *,
         super_passwd: Optional[str] = None,
         bufsize: Optional[int] = None,
-        logger: Callable[..., Any] = stdloggers.log_logger,
     ):
         self.file_table = {}
         self.file_pre = set()
@@ -76,7 +75,6 @@ class Server:
         self.server_socket.listen(backlog)
         self.timeout = client_timeout if client_timeout is not None else SER_TIMEOUT
         self.bufsize = BUFSIZE if bufsize is None else bufsize
-        self.logger = logger
         if super_passwd is not None:
             DFile.set_super_passwd(super_passwd.encode())
 
@@ -117,7 +115,7 @@ class Server:
             ns = str(client.getpeername())
             client.send(OK)
             for p, q in self.recv_file(client, fd.temp):  # type: ignore
-                self.logger(ns, f"{p}/{q}")
+                stdloggers.log_logger(ns, f"{p}/{q}")
             self.file_table[file] = fd
             client.sendall(OK)
         finally:
@@ -145,16 +143,16 @@ class Server:
             assert type(head) is dict, CANT_READ
             assert "type" in head, CANT_READ
             assert type(head["type"]) is str, CANT_READ
-            self.logger(ns, f"Req: {head['type']}")
+            stdloggers.log_logger(ns, f"Req: {head['type']}")
             self.__getattribute__("REQ_" + head["type"])(client, **head)
         except (TypeError, AttributeError) as err:
-            self.logger(ns, err)
+            stdloggers.warn_logger(ns, err)
             try_send(client, CANT_READ.encode())
         except Exception as err:
-            self.logger(ns, str(err))
+            stdloggers.warn_logger(ns, str(err))
             try_send(client, str(err).encode())
         else:
-            self.logger(ns, "Ok.")
+            stdloggers.log_logger(ns, "Ok.")
         finally:
             client.close()
 
@@ -172,5 +170,5 @@ class Server:
 
         thread = threading.Thread(target=listener, daemon=True)
         thread.start()
-        self.logger("Start: ", self.ver_info)
+        stdloggers.log_logger("Start: ", self.ver_info)
         return thread
