@@ -206,12 +206,11 @@ class UI(tk.Tk):
             passwd = self.token.get()
             item = self.getSelFile()
             self.showinfo_fromServer(self.client_socket.erase(item, passwd), item)
+            self.updateList(False).join()
         except OSError as err:
             self.showwarning(str(err), item)
         except AssertionError as err:
             self.showwarning(str(err))
-        finally:
-            self.updateList(False).join()
 
     @withThread
     @logException(stdloggers.err_logger)
@@ -243,11 +242,11 @@ class UI(tk.Tk):
                 self.client_socket.insert(fn, passwd, callback=pushCallBack),
                 getFilename(fn),
             )
+            self.updateList(False).join()
         except (OSError, AssertionError) as err:
             self.showwarning(str(err), getFilename(fn))
         finally:
             pushCallBack(0, 0)
-            self.updateList(False).join()
 
     @withThread
     def download(self):
