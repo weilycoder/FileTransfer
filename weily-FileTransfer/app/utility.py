@@ -46,29 +46,33 @@ class Loggers:
     ):
         self.log_file = log_file
         self.err_file = err_file
+        self.io_lock = threading.Lock()
 
     @staticmethod
     def ftime():
         return f"{time.strftime('%Y-%m-%dT%H:%M:%S%z')} {time.monotonic():.3f}"
 
     def err_logger(self, error: BaseException):
-        print(self.ftime(), file=self.err_file)
-        print(
-            *traceback.format_exception(type(error), error, error.__traceback__),
-            file=self.err_file,
-        )
+        with self.io_lock:
+            print(self.ftime(), file=self.err_file)
+            print(
+                *traceback.format_exception(type(error), error, error.__traceback__),
+                file=self.err_file,
+            )
 
     def warn_logger(self, *args, before: Optional[str] = None):
-        if before is None:
-            print(self.ftime(), *args, file=self.err_file)
-        else:
-            print(before, self.ftime(), *args, file=self.err_file)
+        with self.io_lock:
+            if before is None:
+                print(self.ftime(), *args, file=self.err_file)
+            else:
+                print(before, self.ftime(), *args, file=self.err_file)
 
     def log_logger(self, *args, before: Optional[str] = None):
-        if before is None:
-            print(self.ftime(), *args, file=self.log_file)
-        else:
-            print(before, self.ftime(), *args, file=self.log_file)
+        with self.io_lock:
+            if before is None:
+                print(self.ftime(), *args, file=self.log_file)
+            else:
+                print(before, self.ftime(), *args, file=self.log_file)
 
 
 stdloggers = Loggers()
