@@ -4,7 +4,9 @@ import sys
 import time
 import json
 import socket
+import asyncio
 import os.path
+import queue
 import threading
 import traceback
 import typing
@@ -33,6 +35,7 @@ REQ_HEAD_TOO_LONG = "Request header too long."
 FAIL_REQ = "Request failed."
 FAIL_SEND = "Send failed."
 FAIL_LEN = "Length verification failed."
+TIMED_OUT = "timed out"
 
 INFO = "[INFO]"
 WARN = "[WARN]"
@@ -46,33 +49,42 @@ class Loggers:
     ):
         self.log_file = log_file
         self.err_file = err_file
-        self.io_lock = threading.Lock()
+        self.taskQ = queue.Queue()
+        threading.Thread(target=self.out_task, daemon=True).start()
 
     @staticmethod
     def ftime():
         return f"{time.strftime('%Y-%m-%dT%H:%M:%S%z')} {time.monotonic():.3f}"
 
+    def out_task(self):
+        while True:
+            tk = self.taskQ.get()
+            print(*tk[0], file=tk[1])
+
     def err_logger(self, error: BaseException):
-        with self.io_lock:
-            print(self.ftime(), file=self.err_file)
-            print(
-                *traceback.format_exception(type(error), error, error.__traceback__),
-                file=self.err_file,
+        self.taskQ.put(
+            (
+                (
+                    self.ftime() + "\n",
+                    *traceback.format_exception(
+                        type(error), error, error.__traceback__
+                    ),
+                ),
+                self.err_file,
             )
+        )
 
     def warn_logger(self, *args, before: Optional[str] = None):
-        with self.io_lock:
-            if before is None:
-                print(self.ftime(), *args, file=self.err_file)
-            else:
-                print(before, self.ftime(), *args, file=self.err_file)
+        if before is None:
+            self.taskQ.put(((self.ftime(), *args), self.err_file))
+        else:
+            self.taskQ.put(((before, self.ftime(), *args), self.err_file))
 
     def log_logger(self, *args, before: Optional[str] = None):
-        with self.io_lock:
-            if before is None:
-                print(self.ftime(), *args, file=self.log_file)
-            else:
-                print(before, self.ftime(), *args, file=self.log_file)
+        if before is None:
+            self.taskQ.put(((self.ftime(), *args), self.log_file))
+        else:
+            self.taskQ.put(((before, self.ftime(), *args), self.log_file))
 
 
 stdloggers = Loggers()
@@ -215,12 +227,6 @@ def ignoreExceptions(
         return warpper
 
     return decorator
-
-
-@ignoreExceptions(KeyboardInterrupt)
-def wait():
-    while True:
-        pass
 
 
 def CheckBigInt(start: int):

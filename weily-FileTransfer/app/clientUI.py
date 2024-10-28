@@ -245,6 +245,8 @@ class UI(tk.Tk):
             self.updateList(False).join()
         except (OSError, AssertionError) as err:
             self.showwarning(str(err), getFilename(fn))
+        except UnicodeError:
+            self.showwarning(FAIL_SEND, getFilename(fn))
         finally:
             pushCallBack(0, 0)
 

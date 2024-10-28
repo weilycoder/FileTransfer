@@ -31,10 +31,10 @@ class Client:
                 data = f.read(self.bufsize)
                 if not data:
                     break
-                safe_send_head(fd, data, self.bufsize)
+                try_send(fd, data)
                 sent += len(data)
-                code = fd.recv(self.bufsize)
-                assert code == CONT, FAIL_SEND
+                code = fd.recv(self.bufsize).replace(CONT, b'')
+                assert not code, code.decode()
                 yield (sent, size)
 
     def requset_head(self, **data: str):
@@ -79,10 +79,10 @@ class Client:
             if callback(p, q):
                 cli.shutdown(socket.SHUT_WR)
                 break
-        code = cli.recv(self.bufsize)
-        while code == CONT:
-            code = cli.recv(self.bufsize)
-        return code.decode()
+        code = cli.recv(self.bufsize).replace(CONT, b'')
+        while not code:
+            code = cli.recv(self.bufsize).replace(CONT, b'')
+        return code.replace(CONT, b"").decode()
 
     def erase(self, file: str, passwd: str = ""):
         self.test()

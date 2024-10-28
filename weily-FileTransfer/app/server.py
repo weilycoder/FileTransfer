@@ -62,7 +62,6 @@ class Server:
         self,
         hostname: str = "localhost",
         post: int = 8080,
-        backlog: int = 16,
         client_timeout: Optional[float] = None,
         *,
         super_passwd: Optional[str] = None,
@@ -70,9 +69,7 @@ class Server:
     ):
         self.file_table = {}
         self.file_pre = set()
-        self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.server_socket.bind((hostname, post))
-        self.server_socket.listen(backlog)
+        self.addr = (hostname, post)
         self.timeout = client_timeout if client_timeout is not None else SER_TIMEOUT
         self.bufsize = BUFSIZE if bufsize is None else bufsize
         if super_passwd is not None:
@@ -82,93 +79,127 @@ class Server:
     def ver_info(self):
         return {"version": VERSION, "bufsize": self.bufsize}
 
-    def recv_file(self, fd: socket.socket, file: typing.BinaryIO):
-        size = int(fd.recv(self.bufsize), 16)
-        fd.send(OK)
+    async def recv(self, reader: asyncio.StreamReader):
+        return await asyncio.wait_for(reader.read(self.bufsize), timeout=self.timeout)
+
+    async def send(self, writer: asyncio.StreamWriter, data: bytes):
+        try:
+            writer.write(data)
+            await writer.drain()
+        except (ConnectionError, BrokenPipeError) as err:
+            stdloggers.err_logger(err)
+
+    async def recv_file(
+        self,
+        reader: asyncio.StreamReader,
+        writer: asyncio.StreamWriter,
+        file: typing.BinaryIO,
+    ):
+        size = int(await self.recv(reader), 16)
+        await self.send(writer, OK)
         sent = 0
         while sent < size:
-            data = fd.recv(self.bufsize)
+            data = await self.recv(reader)
             sent += len(data)
-            fd.send(CONT)
+            await self.send(writer, CONT)
             if not data:
                 break
             file.write(data)
             yield sent, size
         assert sent == size, FAIL_LEN
 
-    def get_list(self):
+    async def get_list(self):
         return [(k, self.file_table[k].filesize) for k in self.file_table.copy()]
 
-    def REQ_test(self, client: socket.socket, type: str):
-        client.sendall(json.dumps(self.ver_info).encode())
+    async def REQ_test(
+        self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter, type: str
+    ):
+        await self.send(writer, json.dumps(self.ver_info).encode())
 
-    def REQ_list(self, client: socket.socket, type: str):
-        client.sendall(json.dumps(self.get_list()).encode())
+    async def REQ_list(
+        self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter, type: str
+    ):
+        await self.send(writer, json.dumps(await self.get_list()).encode())
 
-    def REQ_insert(
-        self, client: socket.socket, type: str, *, file: str, passwd: str = ""
+    async def REQ_insert(
+        self,
+        reader: asyncio.StreamReader,
+        writer: asyncio.StreamWriter,
+        type: str,
+        *,
+        file: str,
+        passwd: str = "",
     ):
         assert file not in self.file_table and file not in self.file_pre, FILE_EXIST
         try:
             self.file_pre.add(file)
             fd = DFile(passwd.encode())
-            ns = str(client.getpeername())
-            client.send(OK)
-            for p, q in self.recv_file(client, fd.temp):  # type: ignore
-                stdloggers.log_logger(ns, f"{p}/{q}")
+            addr: Tuple[str, int] = writer.get_extra_info("peername")
+            await self.send(writer, OK)
+            async for p, q in self.recv_file(reader, writer, fd.temp):  # type: ignore
+                stdloggers.log_logger(addr, f"{p}/{q}")
             self.file_table[file] = fd
-            client.sendall(OK)
+            await self.send(writer, OK)
         finally:
             self.file_pre.remove(file)
 
-    def REQ_erase(
-        self, client: socket.socket, type: str, *, file: str, passwd: str = ""
+    async def REQ_erase(
+        self,
+        reader: asyncio.StreamReader,
+        writer: asyncio.StreamWriter,
+        type: str,
+        *,
+        file: str,
+        passwd: str = "",
     ):
         assert file in self.file_table, FILE_NOT_EXIST
         assert self.file_table[file].check(passwd.encode()), PASSWD_ERR
         self.file_table.pop(file).close()
-        client.sendall(OK)
+        await self.send(writer, OK)
 
-    def REQ_get(self, client: socket.socket, type: str, *, file: str, passwd: str = ""):
+    async def REQ_get(
+        self,
+        reader: asyncio.StreamReader,
+        writer: asyncio.StreamWriter,
+        type: str,
+        *,
+        file: str,
+        passwd: str = "",
+    ):
         assert file in self.file_table, FILE_NOT_EXIST
         dF = self.file_table[file]
         assert dF.check(passwd.encode()), PASSWD_ERR
-        client.sendall(dF.read() + b"\0")
+        await self.send(writer, dF.read() + b'\0')
 
-    def server(self, client: socket.socket):
-        ns = str(client.getpeername())
-        client.settimeout(self.timeout)
+    async def handle_client(
+        self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter
+    ):
+        addr: Tuple[str, int] = writer.get_extra_info("peername")
         try:
-            head = json.loads(client.recv(self.bufsize).decode())
+            head = json.loads(await self.recv(reader))
             assert type(head) is dict, CANT_READ
             assert "type" in head, CANT_READ
             assert type(head["type"]) is str, CANT_READ
-            stdloggers.log_logger(ns, f"Req: {head['type']}")
-            self.__getattribute__("REQ_" + head["type"])(client, **head)
+            stdloggers.log_logger(addr, f"Req: {head['type']}")
+            await self.__getattribute__("REQ_" + head["type"])(reader, writer, **head)
         except (TypeError, AttributeError) as err:
-            stdloggers.warn_logger(ns, err)
-            try_send(client, CANT_READ.encode())
+            stdloggers.warn_logger(addr, err)
+            await self.send(writer, CANT_READ.encode())
+        except (TimeoutError, asyncio.exceptions.TimeoutError) as err:
+            stdloggers.warn_logger(addr, TIMED_OUT)
+            await self.send(writer, TIMED_OUT.encode())
         except Exception as err:
-            stdloggers.warn_logger(ns, str(err))
-            try_send(client, str(err).encode())
+            stdloggers.warn_logger(addr, str(err))
+            await self.send(writer, str(err).encode())
         else:
-            stdloggers.log_logger(ns, "Ok.")
+            stdloggers.log_logger(addr, OK)
         finally:
-            client.close()
+            writer.close()
+            await writer.wait_closed()
 
-    def start(self):
-        def listener():
-            while True:
-                try:
-                    threading.Thread(
-                        target=self.server,
-                        args=(self.server_socket.accept()[0],),
-                        daemon=True,
-                    ).start()
-                except (socket.timeout, TimeoutError):
-                    pass
+    async def start(self):
+        server = await asyncio.start_server(self.handle_client, *self.addr)
+        stdloggers.log_logger("Start:", self.ver_info)
 
-        thread = threading.Thread(target=listener, daemon=True)
-        thread.start()
-        stdloggers.log_logger("Start: ", self.ver_info)
-        return thread
+        async with server:
+            await server.serve_forever()
