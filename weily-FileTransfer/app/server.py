@@ -185,7 +185,8 @@ class Server:
         except (TypeError, AttributeError) as err:
             stdloggers.warn_logger(addr, err)
             await self.send(writer, CANT_READ.encode())
-        except TimeoutError as err:
+        except (TimeoutError, asyncio.exceptions.TimeoutError) as err:
+            stdloggers.warn_logger(addr, TIMED_OUT)
             await self.send(writer, TIMED_OUT.encode())
         except Exception as err:
             stdloggers.warn_logger(addr, str(err))

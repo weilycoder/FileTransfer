@@ -34,7 +34,7 @@ class Client:
                 try_send(fd, data)
                 sent += len(data)
                 code = fd.recv(self.bufsize).replace(CONT, b'')
-                assert not code, FAIL_SEND
+                assert not code, code.decode()
                 yield (sent, size)
 
     def requset_head(self, **data: str):
