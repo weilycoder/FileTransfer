@@ -82,6 +82,13 @@ class Server:
     async def recv(self, reader: asyncio.StreamReader):
         return await asyncio.wait_for(reader.read(self.bufsize), timeout=self.timeout)
 
+    async def send(self, writer: asyncio.StreamWriter, data: bytes):
+        try:
+            writer.write(data)
+            await writer.drain()
+        except (ConnectionError, BrokenPipeError) as err:
+            stdloggers.err_logger(err)
+
     async def recv_file(
         self,
         reader: asyncio.StreamReader,
@@ -89,14 +96,12 @@ class Server:
         file: typing.BinaryIO,
     ):
         size = int(await self.recv(reader), 16)
-        writer.write(OK)
-        await writer.drain()
+        await self.send(writer, OK)
         sent = 0
         while sent < size:
             data = await self.recv(reader)
             sent += len(data)
-            writer.write(CONT)
-            await writer.drain()
+            await self.send(writer, CONT)
             if not data:
                 break
             file.write(data)
@@ -109,14 +114,12 @@ class Server:
     async def REQ_test(
         self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter, type: str
     ):
-        writer.write(json.dumps(self.ver_info).encode())
-        await writer.drain()
+        await self.send(writer, json.dumps(self.ver_info).encode())
 
     async def REQ_list(
         self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter, type: str
     ):
-        writer.write(json.dumps(await self.get_list()).encode())
-        await writer.drain()
+        await self.send(writer, json.dumps(await self.get_list()).encode())
 
     async def REQ_insert(
         self,
@@ -132,13 +135,11 @@ class Server:
             self.file_pre.add(file)
             fd = DFile(passwd.encode())
             addr: Tuple[str, int] = writer.get_extra_info("peername")
-            writer.write(OK)
-            await writer.drain()
+            await self.send(writer, OK)
             async for p, q in self.recv_file(reader, writer, fd.temp):  # type: ignore
                 stdloggers.log_logger(addr, f"{p}/{q}")
             self.file_table[file] = fd
-            writer.write(OK)
-            await writer.drain()
+            await self.send(writer, OK)
         finally:
             self.file_pre.remove(file)
 
@@ -154,8 +155,7 @@ class Server:
         assert file in self.file_table, FILE_NOT_EXIST
         assert self.file_table[file].check(passwd.encode()), PASSWD_ERR
         self.file_table.pop(file).close()
-        writer.write(OK)
-        await writer.drain()
+        await self.send(writer, OK)
 
     async def REQ_get(
         self,
@@ -169,9 +169,7 @@ class Server:
         assert file in self.file_table, FILE_NOT_EXIST
         dF = self.file_table[file]
         assert dF.check(passwd.encode()), PASSWD_ERR
-        writer.write(dF.read())
-        writer.write(b'\0')
-        await writer.drain()
+        await self.send(writer, dF.read() + b'\0')
 
     async def handle_client(
         self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter
@@ -186,12 +184,10 @@ class Server:
             await self.__getattribute__("REQ_" + head["type"])(reader, writer, **head)
         except (TypeError, AttributeError) as err:
             stdloggers.warn_logger(addr, err)
-            writer.write(CANT_READ.encode())
-            await writer.drain()
+            await self.send(writer, CANT_READ.encode())
         except Exception as err:
             stdloggers.warn_logger(addr, str(err))
-            writer.write(str(err).encode())
-            await writer.drain()
+            await self.send(writer, str(err).encode())
         else:
             stdloggers.log_logger(addr, OK)
         finally:
