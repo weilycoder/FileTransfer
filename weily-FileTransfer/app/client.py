@@ -79,9 +79,9 @@ class Client:
             if callback(p, q):
                 cli.shutdown(socket.SHUT_WR)
                 break
-        code = cli.recv(self.bufsize)
-        while code == CONT:
-            code = cli.recv(self.bufsize)
+        code = cli.recv(self.bufsize).replace(CONT, b'')
+        while not code:
+            code = cli.recv(self.bufsize).replace(CONT, b'')
         return code.replace(CONT, b"").decode()
 
     def erase(self, file: str, passwd: str = ""):
