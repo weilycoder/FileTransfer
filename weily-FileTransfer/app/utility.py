@@ -4,6 +4,7 @@ import sys
 import time
 import json
 import socket
+import asyncio
 import os.path
 import threading
 import traceback
@@ -215,12 +216,6 @@ def ignoreExceptions(
         return warpper
 
     return decorator
-
-
-@ignoreExceptions(KeyboardInterrupt)
-def wait():
-    while True:
-        pass
 
 
 def CheckBigInt(start: int):

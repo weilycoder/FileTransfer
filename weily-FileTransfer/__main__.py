@@ -2,9 +2,9 @@ import sys
 import argparse
 
 try:
-    from app import Server, UI, wait, CheckBigInt
+    from app import Server, UI, asyncio, CheckBigInt
 except ImportError:
-    from .app import Server, UI, wait, CheckBigInt
+    from .app import Server, UI, asyncio, CheckBigInt
 
 
 if __name__ == "__main__":
@@ -26,12 +26,6 @@ if __name__ == "__main__":
     )
     parser.add_argument("--timeout", type=float, help="set the timeout in second")
     parser.add_argument(
-        "--backlog",
-        default=16,
-        type=int,
-        help="Maximum number of connections, only effective when starting in server mode",
-    )
-    parser.add_argument(
         "--superpasswd",
         help="set a super password, only effective when starting in server mode",
     )
@@ -42,12 +36,10 @@ if __name__ == "__main__":
                 super_passwd=args.superpasswd,
                 hostname=args.host,
                 post=args.post,
-                backlog=args.backlog,
                 client_timeout=args.timeout,
                 bufsize=args.buf,
             )
-            app.start()
-            wait()
+            asyncio.run(app.start())
         else:
             app = UI(
                 host=args.host,
