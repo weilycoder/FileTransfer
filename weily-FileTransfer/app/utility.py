@@ -35,6 +35,7 @@ REQ_HEAD_TOO_LONG = "Request header too long."
 FAIL_REQ = "Request failed."
 FAIL_SEND = "Send failed."
 FAIL_LEN = "Length verification failed."
+TIMED_OUT = "timed out"
 
 INFO = "[INFO]"
 WARN = "[WARN]"
