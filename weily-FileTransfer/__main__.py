@@ -50,3 +50,6 @@ if __name__ == "__main__":
             app.mainloop()
     except Exception as err:
         print(err, file=sys.stderr)
+    except KeyboardInterrupt:
+        print("^C", file=sys.stderr)
+        sys.exit(0)
