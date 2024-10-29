@@ -169,10 +169,19 @@ class UI(tk.Tk):
 
     def set_data(self, table: List[Tuple[str, int]]):
         with self.tree_lock:
-            for item in self.tree.get_children():
-                self.tree.delete(item)
-            for file, size in table:
-                self.tree.insert("", tk.END, values=(file, format_size(size)))
+            new_data = map(lambda tp: (tp[0], format_size(tp[1])), table)
+            current_items = list(self.tree.get_children())
+            current_data = {
+                tuple(self.tree.item(it)["values"]): it for it in current_items
+            }
+            for new_it in new_data:
+                if new_it in current_data:
+                    item_id = current_data[new_it]
+                    current_items.remove(item_id)
+                else:
+                    self.tree.insert("", tk.END, values=new_it)
+            for it in current_items:
+                self.tree.delete(it)
 
     @withThread
     @logException(stdloggers.err_logger)
