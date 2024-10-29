@@ -198,6 +198,10 @@ class Server:
             await writer.wait_closed()
 
     async def start(self):
+        hostname = socket.gethostname()
+        hostip = socket.gethostbyname(hostname)
+        stdloggers.log_logger(f"Host IP: {hostip}")
+        stdloggers.log_logger(f"Host name: {hostname}")
         server = await asyncio.start_server(self.handle_client, *self.addr)
         stdloggers.log_logger("Start:", self.ver_info)
 
