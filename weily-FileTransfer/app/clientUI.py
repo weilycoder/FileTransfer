@@ -51,6 +51,7 @@ class UI(tk.Tk):
     data: List[Tuple[str, int]]
     button_list: List[ttk.Button]
     toplever_table: Set[ProgressbarToplevel]
+    sort_methed: Union[None, Tuple[int, bool]]
 
     def __init__(
         self,
@@ -70,6 +71,7 @@ class UI(tk.Tk):
         self.bufsize = bufsize
         self.data = []
         self.button_list = []
+        self.sort_methed = None
         self.toplever_table = set()
         self.token = tk.StringVar(self)
         self.host = tk.StringVar(self, host)
@@ -104,8 +106,12 @@ class UI(tk.Tk):
         self.tree = ttk.Treeview(root, yscrollcommand=ytableScrollbar.set)
         self.tree["columns"] = ("#1", "#2")
         self.tree.column("#0", width=0, stretch=tk.NO)
-        self.tree.heading("#1", text="File", anchor=tk.W)
-        self.tree.heading("#2", text="Size", anchor=tk.W)
+        self.tree.heading(
+            "#1", text="File", anchor=tk.W, command=lambda: self.sel_head(0)
+        )
+        self.tree.heading(
+            "#2", text="Size", anchor=tk.W, command=lambda: self.sel_head(1)
+        )
         ytableScrollbar.config(command=self.tree.yview)
         self.tree.place(relx=0.0, rely=0.0, relwidth=BOXWID, relheight=1.0)
         ytableScrollbar.place(relx=BOXWID, rely=0.0, relwidth=BARWID, relheight=1.0)
@@ -161,27 +167,48 @@ class UI(tk.Tk):
         )
         return root
 
+    def sel_head(self, col: int):
+        if self.sort_methed is None or self.sort_methed[0] != col:
+            self.sort_methed = (col, False)
+        else:
+            self.sort_methed = (col, not self.sort_methed[1])
+        self.set_data(self.get_list(), True)
+
+    def get_list(self):
+        table = self.client_socket.list()
+        if self.sort_methed is not None:
+            print(self.sort_methed)
+            i, r = self.sort_methed
+            table.sort(key=lambda tp: tp[i], reverse=r)
+        return table
+
     def getSelFile(self):
         sel = self.tree.selection()
         assert sel, "No item selected."
         assert len(sel) == 1, "Too many items selected."
         return str(self.tree.item(sel[0], "values")[0])
 
-    def set_data(self, table: List[Tuple[str, int]]):
+    def set_data(self, table: List[Tuple[str, int]], force: bool = False):
         with self.tree_lock:
-            new_data = map(lambda tp: (tp[0], format_size(tp[1])), table)
-            current_items = list(self.tree.get_children())
-            current_data = {
-                tuple(self.tree.item(it)["values"]): it for it in current_items
-            }
-            for new_it in new_data:
-                if new_it in current_data:
-                    item_id = current_data[new_it]
-                    current_items.remove(item_id)
-                else:
-                    self.tree.insert("", tk.END, values=new_it)
-            for it in current_items:
-                self.tree.delete(it)
+            if force:
+                for item in self.tree.get_children():
+                    self.tree.delete(item)
+                for file, size in table:
+                    self.tree.insert("", tk.END, values=(file, format_size(size)))
+            else:
+                new_data = map(lambda tp: (tp[0], format_size(tp[1])), table)
+                current_items = list(self.tree.get_children())
+                current_data = {
+                    tuple(self.tree.item(it)["values"]): it for it in current_items
+                }
+                for new_it in new_data:
+                    if new_it in current_data:
+                        item_id = current_data[new_it]
+                        current_items.remove(item_id)
+                    else:
+                        self.tree.insert("", tk.END, values=new_it)
+                for it in current_items:
+                    self.tree.delete(it)
 
     @withThread
     @logException(stdloggers.err_logger)
@@ -190,19 +217,17 @@ class UI(tk.Tk):
             self.block_button(UI_BLOCK)
             self.client_socket = self.newClient()
             self.client_socket.test()
-            self.updateList(False).join()
+            self.set_data(self.get_list())
             self.showinfo("Link Ok.")
         except (OSError, AssertionError) as err:
             self.showwarning(str(err))
 
     @withThread
     @logException(stdloggers.err_logger)
-    def updateList(self, is_button: bool = True):
+    def updateList(self):
         try:
-            if is_button:
-                self.block_button(UI_BLOCK)
-            self.set_data(self.client_socket.list())
-            self.tree.selection_set(())
+            self.block_button(UI_BLOCK)
+            self.set_data(self.get_list())
             self.update_toplever()
         except (OSError, AssertionError) as err:
             self.showwarning(str(err))
@@ -215,7 +240,7 @@ class UI(tk.Tk):
             passwd = self.token.get()
             item = self.getSelFile()
             self.showinfo_fromServer(self.client_socket.erase(item, passwd), item)
-            self.updateList(False).join()
+            self.set_data(self.get_list())
         except OSError as err:
             self.showwarning(str(err), item)
         except AssertionError as err:
@@ -251,7 +276,7 @@ class UI(tk.Tk):
                 self.client_socket.insert(fn, passwd, callback=pushCallBack),
                 getFilename(fn),
             )
-            self.updateList(False).join()
+            self.set_data(self.get_list())
         except (OSError, AssertionError) as err:
             self.showwarning(str(err), getFilename(fn))
         except UnicodeError:
