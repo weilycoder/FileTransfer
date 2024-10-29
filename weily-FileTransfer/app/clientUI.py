@@ -177,7 +177,6 @@ class UI(tk.Tk):
     def get_list(self):
         table = self.client_socket.list()
         if self.sort_methed is not None:
-            print(self.sort_methed)
             i, r = self.sort_methed
             table.sort(key=lambda tp: tp[i], reverse=r)
         return table

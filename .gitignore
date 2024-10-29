@@ -1,5 +1,6 @@
 dist
 venv
+output
 .vscode
 *.egg-info
 __pycache__
