@@ -46,11 +46,9 @@ UI_BLOCK = 100
 class Loggers:
     def __init__(
         self,
-        main_thread: threading.Thread,
         log_file: typing.TextIO = sys.stdout,
         err_file: typing.TextIO = sys.stderr,
     ):
-        self.main = main_thread
         self.log_file = log_file
         self.err_file = err_file
         self.taskQ = queue.Queue()
@@ -60,14 +58,15 @@ class Loggers:
     def ftime():
         return f"{time.strftime('%Y-%m-%dT%H:%M:%S%z')} {time.monotonic():.3f}"
 
+    def close(self):
+        self.taskQ.put(None)
+
     def out_task(self):
-        while self.main.is_alive():
-            try:
-                tk = self.taskQ.get_nowait()
-            except queue.Empty:
-                continue
-            else:
-                print(*tk[0], file=tk[1])
+        while True:
+            tk = self.taskQ.get()
+            if tk is None:
+                break
+            print(*tk[0], file=tk[1])
         while not self.taskQ.empty():
             tk = self.taskQ.get_nowait()
             print(*tk[0], file=tk[1])
@@ -98,7 +97,7 @@ class Loggers:
             self.taskQ.put(((before, self.ftime(), *args), self.log_file))
 
 
-stdloggers = Loggers(threading.current_thread())
+stdloggers = Loggers()
 
 
 def try_recv(client: socket.socket, bufsize: int):
