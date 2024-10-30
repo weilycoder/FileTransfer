@@ -203,7 +203,7 @@ class Server:
         stdloggers.log_logger(f"Host IP: {hostip}")
         stdloggers.log_logger(f"Host name: {hostname}")
         server = await asyncio.start_server(self.handle_client, *self.addr)
-        stdloggers.log_logger("Start:", self.ver_info)
+        stdloggers.log_logger("Start:", self.addr, self.ver_info)
 
         async with server:
             await server.serve_forever()
