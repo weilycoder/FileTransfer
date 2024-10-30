@@ -56,8 +56,8 @@ if __name__ == "__main__":
         "--superpasswd",
         help="set a super password, only effective when starting in server mode",
     )
-    args = Settings(get_setting(parser.parse_args(), get_toml_file()))
     try:
+        args = Settings(get_setting(parser.parse_args(), get_toml_file()))
         if args.mode == SERVER:
             app = Server(
                 super_passwd=args.superpasswd,
@@ -80,3 +80,5 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         print("^C", file=sys.stderr)
         sys.exit(0)
+    finally:
+        stdloggers.close()
