@@ -227,13 +227,3 @@ def ignoreExceptions(
         return warpper
 
     return decorator
-
-
-def CheckBigInt(start: int):
-    def checker(val: Any):
-        x = int(val)
-        if x < start:
-            raise ValueError
-        return x
-
-    return checker
