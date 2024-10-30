@@ -1,5 +1,6 @@
 import sys
 import argparse
+import tomlkit.exceptions
 
 try:
     from app import Server, UI, asyncio, stdloggers
@@ -75,6 +76,8 @@ if __name__ == "__main__":
                 bufsize=args.buf,
             )
             app.mainloop()
+    except (AssertionError, tomlkit.exceptions.TOMLKitError) as err:
+        stdloggers.warn_logger("TOML Error:", str(err))
     except Exception as err:
         stdloggers.err_logger(err)
     except KeyboardInterrupt:
