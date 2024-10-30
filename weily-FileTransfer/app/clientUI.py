@@ -344,8 +344,8 @@ class UI(tk.Tk):
         self.update()
 
     def block_button(self, ms: int):
-        self.after(ms, func=self.enable_button)
         self.disable_button()
+        self.after(ms, func=self.enable_button)
 
     def showinfo_fromServer(self, msg: str, source: Optional[str] = None):
         (self.showinfo if msg.encode() == OK else self.showwarning)(msg, source)
