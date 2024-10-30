@@ -36,7 +36,7 @@ options:
 
 实现了简单的权限控制：若上传文件时指定了非空密码，则删除文件或下载文件时要提供相同密码，或者提供超级密码。
 
-![Demo](./demo.png)
+![Demo](https://github.com/weilycoder/FileTransfer/blob/main/demo.png)
 
 ## 下载
 
@@ -50,8 +50,8 @@ pip install -i https://test.pypi.org/simple/ weily-FileTransfer
 
 详见 [issues 相关页面](https://github.com/weilycoder/FileTransfer/issues/1)。
 
-## 许可证
+## 许可证和声明
 
-项目主体使用 [SATA](https://github.com/zTrix/sata-license) 许可证，如果你使用了我的项目并觉得它有用，请为我点赞。
+项目文件没有特殊声明的，使用 [SATA](https://github.com/zTrix/sata-license) 许可证，如果你使用了我的项目并觉得它有用，请为我点赞。
 
 SATA 基于 MIT 许可证，允许你在保留原始版权通知和许可条款的前提下，自由地使用、复制、修改、合并、出版发行、散布、再授权和/或销售软件及其副本。
