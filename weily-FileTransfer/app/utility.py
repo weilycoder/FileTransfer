@@ -45,20 +45,31 @@ UI_BLOCK = 100
 
 class Loggers:
     def __init__(
-        self, log_file: typing.TextIO = sys.stdout, err_file: typing.TextIO = sys.stderr
+        self,
+        main_thread: threading.Thread,
+        log_file: typing.TextIO = sys.stdout,
+        err_file: typing.TextIO = sys.stderr,
     ):
+        self.main = main_thread
         self.log_file = log_file
         self.err_file = err_file
         self.taskQ = queue.Queue()
-        threading.Thread(target=self.out_task, daemon=True).start()
+        self.task = threading.Thread(target=self.out_task).start()
 
     @staticmethod
     def ftime():
         return f"{time.strftime('%Y-%m-%dT%H:%M:%S%z')} {time.monotonic():.3f}"
 
     def out_task(self):
-        while True:
-            tk = self.taskQ.get()
+        while self.main.is_alive():
+            try:
+                tk = self.taskQ.get_nowait()
+            except queue.Empty:
+                continue
+            else:
+                print(*tk[0], file=tk[1])
+        while not self.taskQ.empty():
+            tk = self.taskQ.get_nowait()
             print(*tk[0], file=tk[1])
 
     def err_logger(self, error: BaseException):
@@ -87,7 +98,7 @@ class Loggers:
             self.taskQ.put(((before, self.ftime(), *args), self.log_file))
 
 
-stdloggers = Loggers()
+stdloggers = Loggers(threading.current_thread())
 
 
 def try_recv(client: socket.socket, bufsize: int):
