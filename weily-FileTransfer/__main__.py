@@ -2,9 +2,9 @@ import sys
 import argparse
 
 try:
-    from app import Server, UI, asyncio
+    from app import Server, UI, asyncio, stdloggers
 except ImportError:
-    from .app import Server, UI, asyncio
+    from .app import Server, UI, asyncio, stdloggers
 
 try:
     from settings import MODE_CHOICES, SERVER, CheckBigInt, get_setting, Settings
@@ -76,8 +76,7 @@ if __name__ == "__main__":
             )
             app.mainloop()
     except Exception as err:
-        # print(err, file=sys.stderr)
-        raise
+        stdloggers.err_logger(err)
     except KeyboardInterrupt:
         print("^C", file=sys.stderr)
         sys.exit(0)
