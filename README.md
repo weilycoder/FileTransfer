@@ -14,18 +14,18 @@
 具体地，使用 `-h` / `--help` 查看详细信息：
 
 ```text
-usage: <Filename> [-h] [-s] [-i HOST] [-p POST] [-b BUF] [--timeout TIMEOUT] [--backlog BACKLOG] [--superpasswd SUPERPASSWD]
+usage: <Filename> [-h] [--mode {client,server}] [-i HOST] [-p POST] [-b BUF] [--timeout TIMEOUT] [--superpasswd SUPERPASSWD]
 
-Launch the File Transfer, which defaults to starting in client mode.
+Launch the File Transfer.
 
 options:
   -h, --help            show this help message and exit
-  -s, --server          start in server mode
+  --mode {client,server}
+                        Specify the launch mode, which defaults to starting in client mode.
   -i HOST, --host HOST  set the server name
   -p POST, --post POST  set the communication port
   -b BUF, --buf BUF     set buffer size, which must be greater than or equal to 1024
   --timeout TIMEOUT     set the timeout in second
-  --backlog BACKLOG     Maximum number of connections, only effective when starting in server mode
   --superpasswd SUPERPASSWD
                         set a super password, only effective when starting in server mode
 ```
