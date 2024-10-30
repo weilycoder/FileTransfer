@@ -172,14 +172,15 @@ class UI(tk.Tk):
             self.sort_methed = (col, False)
         else:
             self.sort_methed = (col, not self.sort_methed[1])
-        self.set_data(self.get_list(), True)
+        self.set_data(self.get_list(False), True)
 
-    def get_list(self):
-        table = self.client_socket.list()
+    def get_list(self, force: bool = True):
+        if force:
+            self.data = self.client_socket.list()
         if self.sort_methed is not None:
             i, r = self.sort_methed
-            table.sort(key=lambda tp: tp[i], reverse=r)
-        return table
+            self.data.sort(key=lambda tp: tp[i], reverse=r)
+        return self.data
 
     def getSelFile(self):
         sel = self.tree.selection()
