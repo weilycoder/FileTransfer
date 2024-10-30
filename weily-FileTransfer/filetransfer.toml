@@ -1,9 +1,0 @@
-mode = "client"
-
-[client]
-host = "localhost"
-post = 8080
-
-[server]
-host = "0.0.0.0"
-post = 8080
