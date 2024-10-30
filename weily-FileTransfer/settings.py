@@ -4,6 +4,11 @@ import tomlkit.exceptions
 
 from typing import *  # type: ignore
 
+try:
+    from app import stdloggers
+except ImportError:
+    from .app import stdloggers
+
 
 CLIENT = "client"
 SERVER = "server"
@@ -42,16 +47,20 @@ def save_toml(filename: str, setting: Dict[str, Any]):
 
 def get_setting(args: argparse.Namespace, toml_file: str) -> Dict[str, Any]:
     setting = DEFAULT_SETTING.copy()
-    toml_setting = read_toml(toml_file)
-    if "mode" in toml_setting:
-        assert toml_setting["mode"] in MODE_CHOICES
-        setting["mode"] = toml_setting["mode"]
-    if "server" in toml_setting:
-        assert isinstance(toml_setting["server"], dict)
-        setting["server"].update(toml_setting["server"])
-    if "client" in toml_setting:
-        assert isinstance(toml_setting["client"], dict)
-        setting["client"].update(toml_setting["client"])
+    try:
+        toml_setting = read_toml(toml_file)
+        if "mode" in toml_setting:
+            assert toml_setting["mode"] in MODE_CHOICES
+            setting["mode"] = toml_setting["mode"]
+        if "server" in toml_setting:
+            assert isinstance(toml_setting["server"], dict)
+            setting["server"].update(toml_setting["server"])
+        if "client" in toml_setting:
+            assert isinstance(toml_setting["client"], dict)
+            setting["client"].update(toml_setting["client"])
+    except AssertionError:
+        stdloggers.warn_logger("Configuration file parsing failed.")
+        setting = DEFAULT_SETTING.copy()
     argv_setting = vars(args)
     mode = str(argv_setting["mode"] or setting["mode"])
     setting["mode"] = mode
