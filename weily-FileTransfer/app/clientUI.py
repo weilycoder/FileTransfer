@@ -184,9 +184,7 @@ class UI(tk.Tk):
 
     def getSelFile(self):
         sel = self.tree.selection()
-        assert sel, "No item selected."
-        assert len(sel) == 1, "Too many items selected."
-        return str(self.tree.item(sel[0], "values")[0])
+        return [str(self.tree.item(it, "values")[0]) for it in sel]
 
     def set_data(self, table: List[Tuple[str, int]], force: bool = False):
         with self.tree_lock:
@@ -210,6 +208,9 @@ class UI(tk.Tk):
                 for it in current_items:
                     self.tree.delete(it)
 
+    def _updateList(self):
+        self.set_data(self.get_list())
+
     @withThread
     @logException(stdloggers.err_logger)
     def testCon(self):
@@ -217,7 +218,7 @@ class UI(tk.Tk):
             self.block_button(UI_BLOCK)
             self.client_socket = self.newClient()
             self.client_socket.test()
-            self.set_data(self.get_list())
+            self._updateList()
             self.showinfo("Link Ok.")
         except (OSError, AssertionError) as err:
             self.showwarning(str(err))
@@ -227,7 +228,7 @@ class UI(tk.Tk):
     def updateList(self):
         try:
             self.block_button(UI_BLOCK)
-            self.set_data(self.get_list())
+            self._updateList()
             self.update_toplever()
         except (OSError, AssertionError) as err:
             self.showwarning(str(err))
@@ -235,16 +236,19 @@ class UI(tk.Tk):
     @withThread
     @logException(stdloggers.err_logger)
     def eraseFile(self):
-        try:
-            self.block_button(UI_BLOCK)
-            passwd = self.token.get()
-            item = self.getSelFile()
-            self.showinfo_fromServer(self.client_socket.erase(item, passwd), item)
-            self.set_data(self.get_list())
-        except OSError as err:
-            self.showwarning(str(err), item)
-        except AssertionError as err:
-            self.showwarning(str(err))
+        self.block_button(UI_BLOCK)
+        passwd = self.token.get()
+        item = self.getSelFile()
+        if len(item) == 0:
+            self.showwarning(NO_ITEM)
+        else:
+            for fn in item:
+                try:
+                    self.showinfo_fromServer(self.client_socket.erase(fn, passwd), fn)
+                except OSError as err:
+                    self.showwarning(str(err), fn)
+                else:
+                    self._updateList()
 
     @withThread
     @logException(stdloggers.err_logger)
@@ -276,7 +280,7 @@ class UI(tk.Tk):
                 self.client_socket.insert(fn, passwd, callback=pushCallBack),
                 getFilename(fn),
             )
-            self.set_data(self.get_list())
+            self._updateList()
         except (OSError, AssertionError) as err:
             self.showwarning(str(err), getFilename(fn))
         except UnicodeError:
@@ -287,31 +291,39 @@ class UI(tk.Tk):
     @withThread
     def download(self):
         toplevel = None
-        try:
-            self.block_button(UI_BLOCK)
-            passwd = self.token.get()
-            item = self.getSelFile()
-            toplevel = self.start_toplever(f"Download - {item}")
-            toplevel.start()
-            ret = self.client_socket.get(item, passwd)
-            if not toplevel.winfo_exists():
-                self.showinfo("Abort.", item)
-            elif not ret[-1]:
-                ret.pop()
-                fn = filedialog.asksaveasfilename(title=self.title(), initialfile=item)
-                if not fn:
-                    return
-                with open(fn, "wb") as f:
-                    f.write(ret)
-                self.showinfo("Install Ok.", item)
-            else:
-                self.showinfo_fromServer(ret.decode(), item)
-        except OSError as err:
-            self.showwarning(str(err), item)
-        except AssertionError as err:
-            self.showwarning(str(err))
-        finally:
-            self.close_toplever(toplevel)
+        self.block_button(UI_BLOCK)
+        passwd = self.token.get()
+        item = self.getSelFile()
+        if len(item) == 0:
+            self.showwarning(NO_ITEM)
+        elif len(item) > 1:
+            self.showwarning(TOO_MANY_ITEM)
+        else:
+            try:
+                # item = self.getSelFile()[0]
+                toplevel = self.start_toplever(f"Download - {item[0]}")
+                toplevel.start()
+                ret = self.client_socket.get(item[0], passwd)
+                if not toplevel.winfo_exists():
+                    self.showinfo("Abort.", item[0])
+                elif not ret[-1]:
+                    ret.pop()
+                    fn = filedialog.asksaveasfilename(
+                        title=self.title(), initialfile=item[0]
+                    )
+                    if not fn:
+                        return
+                    with open(fn, "wb") as f:
+                        f.write(ret)
+                    self.showinfo("Install Ok.", item[0])
+                else:
+                    self.showinfo_fromServer(ret.decode(), item[0])
+            except OSError as err:
+                self.showwarning(str(err), item[0])
+            except AssertionError as err:
+                self.showwarning(str(err))
+            finally:
+                self.close_toplever(toplevel)
 
     def start_toplever(self, title: Optional[str] = None):
         tl = ProgressbarToplevel(self, self.title() if title is None else title)
@@ -348,8 +360,11 @@ class UI(tk.Tk):
         self.disable_button()
         self.after(ms, func=self.enable_button)
 
+    def check_server(self, msg: str):
+        return msg == OK.decode()
+
     def showinfo_fromServer(self, msg: str, source: Optional[str] = None):
-        (self.showinfo if msg.encode() == OK else self.showwarning)(msg, source)
+        (self.showinfo if self.check_server(msg) else self.showwarning)(msg, source)
 
     def showinfo(self, msg: str, source: Optional[str] = None):
         if source is not None:

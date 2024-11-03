@@ -37,6 +37,9 @@ FAIL_SEND = "Send failed."
 FAIL_LEN = "Length verification failed."
 TIMED_OUT = "timed out"
 
+NO_ITEM = "No item selected."
+TOO_MANY_ITEM = "Too many items selected."
+
 INFO = "[INFO]"
 WARN = "[WARN]"
 
