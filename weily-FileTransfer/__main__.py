@@ -21,7 +21,7 @@ def get_path():
 
 
 def get_toml_file():
-    return get_path() + "/" + TOML_FILE
+    return (get_path() or ".") + "/" + TOML_FILE
 
 
 if __name__ == "__main__":
