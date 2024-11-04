@@ -96,6 +96,7 @@ class UI(tk.Tk):
         self.initButtons().place(relx=0.02, rely=0.8, relwidth=0.28, relheight=0.15)
         self.initLinkCon().place(relx=0.32, rely=0.8, relwidth=0.48, relheight=0.15)
         self.initCheckBut().place(relx=0.82, rely=0.8, relwidth=0.16, relheight=0.15)
+        self.initBindKey()
 
     def initListboxWithBar(self):
         BARWID = 0.02
@@ -131,6 +132,10 @@ class UI(tk.Tk):
         self.delBtn.place(relx=DX, rely=BY, relwidth=BWID, relheight=BHEI)
         self.downloadBtn.place(relx=BX, rely=BY, relwidth=BWID, relheight=BHEI)
         return root
+
+    def initBindKey(self):
+        self.bind("<Return>", self.testCon)
+        self.bind("<Delete>", self.eraseFile)
 
     def initLinkCon(self):
         root = ttk.Frame(self, relief="groove")
@@ -213,7 +218,7 @@ class UI(tk.Tk):
 
     @withThread
     @logException(stdloggers.err_logger)
-    def testCon(self):
+    def testCon(self, event=None):
         try:
             self.block_button(UI_BLOCK)
             self.client_socket = self.newClient()
@@ -235,7 +240,7 @@ class UI(tk.Tk):
 
     @withThread
     @logException(stdloggers.err_logger)
-    def eraseFile(self):
+    def eraseFile(self, event=None):
         self.block_button(UI_BLOCK)
         passwd = self.token.get()
         item = self.getSelFile()
