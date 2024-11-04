@@ -192,7 +192,7 @@ class Server:
             stdloggers.warn_logger(addr, str(err))
             await self.send(writer, str(err).encode())
         else:
-            stdloggers.log_logger(addr, OK)
+            stdloggers.log_logger(addr, OK.decode())
         finally:
             writer.close()
             await writer.wait_closed()
