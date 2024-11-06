@@ -134,8 +134,12 @@ class UI(tk.Tk):
         return root
 
     def initBindKey(self):
-        self.bind("<Return>", self.testCon)
-        self.bind("<Delete>", self.eraseFile)
+        self.bind("<Escape>", lambda event: self.destroy())
+        self.bind("<Control-Return>", lambda event: self.testCon())
+        self.bind("<F5>", lambda event: self.updateList())
+        self.bind("<Alt-u>", lambda event: self.pushFiles())
+        self.bind("<Alt-d>", lambda event: self.download())
+        self.bind("<Delete>", lambda event: self.eraseFile())
 
     def initLinkCon(self):
         root = ttk.Frame(self, relief="groove")
@@ -218,7 +222,7 @@ class UI(tk.Tk):
 
     @withThread
     @logException(stdloggers.err_logger)
-    def testCon(self, event=None):
+    def testCon(self):
         try:
             self.block_button(UI_BLOCK)
             self.client_socket = self.newClient()
@@ -240,7 +244,7 @@ class UI(tk.Tk):
 
     @withThread
     @logException(stdloggers.err_logger)
-    def eraseFile(self, event=None):
+    def eraseFile(self):
         self.block_button(UI_BLOCK)
         passwd = self.token.get()
         item = self.getSelFile()
