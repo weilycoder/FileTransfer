@@ -30,8 +30,11 @@ class ProgressbarToplevel(tk.Toplevel):
     def run(self, value: int, maximum: int):
         assert self.winfo_exists()
         self.progress_bar.config(mode="determinate")
-        self.progress_bar["value"] = value
-        self.progress_bar["maximum"] = maximum
+        if maximum:
+            self.progress_bar["value"] = value
+            self.progress_bar["maximum"] = maximum
+        else:
+            self.progress_bar["value"] = self.progress_bar["maximum"] = 1
         self.update()
 
     def start(self):
