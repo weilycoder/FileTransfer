@@ -297,42 +297,75 @@ class UI(tk.Tk):
         finally:
             pushCallBack(0, 0)
 
+    def downloadFile(
+        self,
+        filename: str,
+        passwd: str,
+        output: Optional[str] = None,
+        *,
+        toplevel: Optional[ProgressbarToplevel] = None,
+    ):
+        needClose = toplevel is None
+        if toplevel is not None:
+            toplevel.title(f"Download - {filename}")
+        else:
+            toplevel = self.start_toplever(f"Download - {filename}")
+            toplevel.start()
+        self.update()
+        try:
+            ret = self.client_socket.get(filename, passwd)
+            if not toplevel.winfo_exists():
+                self.showinfo("Abort.", filename)
+                return True
+            elif not ret[-1]:
+                ret.pop()
+                fn = (
+                    self.asksaveasfilename(initialfile=filename)
+                    if not output
+                    else output
+                )
+                if not fn:
+                    return
+                with open(fn, "wb") as f:
+                    f.write(ret)
+                self.showinfo("Install Ok.", filename)
+            else:
+                self.showinfo_fromServer(ret.decode(), filename)
+        finally:
+            if needClose:
+                self.close_toplever(toplevel)
+
+    def downloadFiles(self, filelist: List[str], passwd: str):
+        toplevel = self.start_toplever(f"Download")
+        toplevel.start()
+        self.update()
+        try:
+            outdir = self.askdirectory()
+            if not outdir:
+                return
+            for fn in filelist:
+                if self.downloadFile(fn, passwd, outdir + "/" + fn, toplevel=toplevel):
+                    return
+        finally:
+            self.close_toplever(toplevel)
+
     @withThread
     def download(self):
-        toplevel = None
         self.block_button(UI_BLOCK)
         passwd = self.token.get()
         item = self.getSelFile()
         if len(item) == 0:
             self.showwarning(NO_ITEM)
-        elif len(item) > 1:
-            self.showwarning(TOO_MANY_ITEM)
         else:
             try:
-                # item = self.getSelFile()[0]
-                toplevel = self.start_toplever(f"Download - {item[0]}")
-                toplevel.start()
-                ret = self.client_socket.get(item[0], passwd)
-                if not toplevel.winfo_exists():
-                    self.showinfo("Abort.", item[0])
-                elif not ret[-1]:
-                    ret.pop()
-                    fn = filedialog.asksaveasfilename(
-                        title=self.title(), initialfile=item[0]
-                    )
-                    if not fn:
-                        return
-                    with open(fn, "wb") as f:
-                        f.write(ret)
-                    self.showinfo("Install Ok.", item[0])
+                if len(item) == 1:
+                    self.downloadFile(item[0], passwd)
                 else:
-                    self.showinfo_fromServer(ret.decode(), item[0])
+                    self.downloadFiles(item, passwd)
             except OSError as err:
                 self.showwarning(str(err), item[0])
             except AssertionError as err:
                 self.showwarning(str(err))
-            finally:
-                self.close_toplever(toplevel)
 
     def start_toplever(self, title: Optional[str] = None):
         tl = ProgressbarToplevel(self, self.title() if title is None else title)
@@ -390,6 +423,15 @@ class UI(tk.Tk):
             messagebox.showwarning(self.title(), msg)
         else:
             stdloggers.warn_logger(msg, before=WARN)
+
+    def asksaveasfilename(self, initialfile: Optional[str] = None):
+        return filedialog.asksaveasfilename(
+            parent=self, title=self.title(), initialfile=initialfile
+        )
+
+    def askdirectory(self):
+        ret = filedialog.askdirectory(parent=self, title=self.title())
+        return ret.replace("\\", "/")
 
 
 if __name__ == "__main__":
