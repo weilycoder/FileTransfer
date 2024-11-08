@@ -78,6 +78,8 @@ if __name__ == "__main__":
             app.mainloop()
     except (AssertionError, tomlkit.exceptions.TOMLKitError) as err:
         stdloggers.warn_logger("TOML Error:", str(err))
+    except OSError as err:
+        stdloggers.warn_logger(str(err))
     except Exception as err:
         stdloggers.err_logger(err)
     except KeyboardInterrupt:
