@@ -82,6 +82,7 @@ class Client:
         code = cli.recv(self.bufsize).replace(CONT, b'')
         while not code:
             code = cli.recv(self.bufsize).replace(CONT, b'')
+        cli.close()
         return code.replace(CONT, b"").decode()
 
     def erase(self, file: str, passwd: str = ""):

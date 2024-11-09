@@ -267,7 +267,6 @@ class UI(tk.Tk):
     def pushFiles(self):
         try:
             self.block_button(UI_BLOCK)
-            self.client_socket.test()
             passwd = self.token.get()
             for filename in filedialog.askopenfilenames(title=self.title()):
                 self.pushFile(filename, passwd)
@@ -288,10 +287,8 @@ class UI(tk.Tk):
 
         try:
             pro = self.start_toplever(f"Uploading - {getFilename(fn)}")
-            self.showinfo_fromServer(
-                self.client_socket.insert(fn, passwd, callback=pushCallBack),
-                getFilename(fn),
-            )
+            code = self.client_socket.insert(fn, passwd, callback=pushCallBack)
+            self.showinfo_fromServer(code, getFilename(fn))
             self._updateList()
         except (OSError, AssertionError) as err:
             self.showwarning(str(err), getFilename(fn))
