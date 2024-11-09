@@ -265,13 +265,10 @@ class UI(tk.Tk):
     @withThread
     @logException(stdloggers.err_logger)
     def pushFiles(self):
-        try:
-            self.block_button(UI_BLOCK)
-            passwd = self.token.get()
-            for filename in filedialog.askopenfilenames(title=self.title()):
-                self.pushFile(filename, passwd)
-        except (OSError, AssertionError) as err:
-            self.showwarning(str(err))
+        self.block_button(UI_BLOCK)
+        passwd = self.token.get()
+        for filename in filedialog.askopenfilenames(title=self.title()):
+            self.pushFile(filename, passwd)
 
     @withThread
     @logException(stdloggers.err_logger)
