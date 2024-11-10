@@ -9,26 +9,28 @@
 
 用于在学校机房传输文件。
 
-使用命令行启动，不带任何参数默认以上一次启动设置启动，使用 `--mode client` 启动客户端，`--mode server` 启动服务端。前者有 UI，后者仅在命令行显示简单日志。
+使用命令行启动，不带任何参数默认以上一次启动设置启动（读取配置文件），使用 `--mode client` 启动客户端，`--mode server` 启动服务端。前者有 UI，后者仅在命令行显示简单日志。
 
 具体地，使用 `-h` / `--help` 查看详细信息：
 
-```text
-usage: <Filename> [-h] [--mode {client,server}] [-i HOST] [-p POST] [-b BUF] [--timeout TIMEOUT] [--superpasswd SUPERPASSWD]
+```plain
+usage: <Filename> [-h] [--mode {client,server}] [-i HOST] [-p POST] [--timeout TIMEOUT] [--superpasswd SUPERPASSWD] [-b BUF]
 
 Launch the File Transfer.
 
-options:
+optional arguments:
   -h, --help            show this help message and exit
   --mode {client,server}
-                        Specify the launch mode, which defaults to starting in client mode.
+                        Specify the launch mode.
   -i HOST, --host HOST  set the server name
   -p POST, --post POST  set the communication port
-  -b BUF, --buf BUF     set buffer size, which must be greater than or equal to 1024
   --timeout TIMEOUT     set the timeout in second
   --superpasswd SUPERPASSWD
                         set a super password, only effective when starting in server mode
+  -b BUF, --buf BUF     set buffer size, which must be greater than or equal to 1024
 ```
+
+另外，使用 `weily-FileTransfer/server.py` 和 `weily-FileTransfer/client.py` 启动可以直接启动服务端或客户端；默认设置是上一次服务端或客户端启动的设置。使用这两个脚本启动不会将启动模式写入配置文件。
 
 ## 细节
 
