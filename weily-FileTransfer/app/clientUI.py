@@ -15,7 +15,10 @@ class ProgressbarToplevel(tk.Toplevel):
         super().__init__(master)
         self.title(title)
         self.geometry(f"{width}x{height}")
-        self.attributes("-toolwindow", True)
+        try:
+            self.attributes("-toolwindow", True)
+        except tk.TclError: # Linux
+            pass
         self.resizable(False, False)
         self.initUI()
 
