@@ -5,13 +5,14 @@ from typing import *  # type: ignore
 
 
 UA_PAR = "Unable to parse configuration file (key: {key})"
+MODE = "mode"
 CLIENT = "client"
 SERVER = "server"
 MODE_CHOICES = (CLIENT, SERVER)
 DEFAULT_SETTING = {
-    "mode": "client",
-    "client": {"host": "localhost", "post": 8080},
-    "server": {"host": "0.0.0.0", "post": 8080},
+    MODE: CLIENT,
+    CLIENT: {"host": "localhost", "post": 8080},
+    SERVER: {"host": "0.0.0.0", "post": 8080},
 }
 
 
@@ -52,35 +53,35 @@ def save_toml(filename: str, setting: Dict[str, Any]):
 def get_setting(args: argparse.Namespace, toml_file: str, *, mode: Optional[str] = None) -> Dict[str, Any]:
     setting = DEFAULT_SETTING.copy()
     toml_setting = read_toml(toml_file)
-    if "mode" in toml_setting:
-        assert toml_setting["mode"] in MODE_CHOICES, UA_PAR.format(key="mode")
-        setting["mode"] = toml_setting["mode"]
-    if "server" in toml_setting:
-        assert isinstance(toml_setting["server"], dict), UA_PAR.format(key="server")
-        for k, v in toml_setting["server"].items():
+    if MODE in toml_setting:
+        assert toml_setting[MODE] in MODE_CHOICES, UA_PAR.format(key=MODE)
+        setting[MODE] = toml_setting[MODE]
+    if SERVER in toml_setting:
+        assert isinstance(toml_setting[SERVER], dict), UA_PAR.format(key=SERVER)
+        for k, v in toml_setting[SERVER].items():
             assert k in SETTING_TYPE, UA_PAR.format(key=k)
             try:
-                setting["server"][k] = SETTING_TYPE[k](v)
+                setting[SERVER][k] = SETTING_TYPE[k](v)
             except ValueError:
                 raise AssertionError(UA_PAR.format(key=k))
-    if "client" in toml_setting:
-        assert isinstance(toml_setting["client"], dict), UA_PAR.format(key="client")
-        for k, v in toml_setting["client"].items():
+    if CLIENT in toml_setting:
+        assert isinstance(toml_setting[CLIENT], dict), UA_PAR.format(key=CLIENT)
+        for k, v in toml_setting[CLIENT].items():
             assert k in SETTING_TYPE, UA_PAR.format(key=k)
             try:
-                setting["client"][k] = SETTING_TYPE[k](v)
+                setting[CLIENT][k] = SETTING_TYPE[k](v)
             except ValueError:
                 raise AssertionError(UA_PAR.format(key=k))
     argv_setting = vars(args)
     if mode is None:
-        mode = str(argv_setting["mode"] or setting["mode"])
-        setting["mode"] = mode
-        argv_setting.pop("mode")
+        mode = str(argv_setting[MODE] or setting[MODE])
+        setting[MODE] = mode
+        argv_setting.pop(MODE)
     for k, v in argv_setting.items():
         if v is not None:
             setting[mode][k] = v
     save_toml(toml_file, setting)
-    ret = {"mode": mode}
+    ret = {MODE: mode}
     ret.update(setting[mode])
     return ret
 
@@ -90,6 +91,6 @@ class Settings:
         self.__setting = setting
 
     def __getattribute__(self, name: str):
-        if name[:1] == "_":
+        if name[:1] == '_':
             return super().__getattribute__(name)
         return self.__setting.get(name, None)
