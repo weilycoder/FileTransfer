@@ -4,7 +4,10 @@ import tomlkit.exceptions
 
 from typing import Optional
 
-from settings import MODE_CHOICES, SERVER, CheckBigInt, get_setting, Settings
+try:
+    from settings import MODE_CHOICES, SERVER, CheckBigInt, get_setting, Settings
+except ImportError:
+    from .settings import MODE_CHOICES, SERVER, CheckBigInt, get_setting, Settings
 
 try:
     from app import Server, UI, asyncio, stdloggers
