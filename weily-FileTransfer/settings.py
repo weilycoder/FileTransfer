@@ -49,7 +49,7 @@ def save_toml(filename: str, setting: Dict[str, Any]):
         tomlkit.dump(setting, fd)
 
 
-def get_setting(args: argparse.Namespace, toml_file: str) -> Dict[str, Any]:
+def get_setting(args: argparse.Namespace, toml_file: str, *, mode: Optional[str] = None) -> Dict[str, Any]:
     setting = DEFAULT_SETTING.copy()
     toml_setting = read_toml(toml_file)
     if "mode" in toml_setting:
@@ -72,9 +72,10 @@ def get_setting(args: argparse.Namespace, toml_file: str) -> Dict[str, Any]:
             except ValueError:
                 raise AssertionError(UA_PAR.format(key=k))
     argv_setting = vars(args)
-    mode = str(argv_setting["mode"] or setting["mode"])
-    setting["mode"] = mode
-    argv_setting.pop("mode")
+    if mode is None:
+        mode = str(argv_setting["mode"] or setting["mode"])
+        setting["mode"] = mode
+        argv_setting.pop("mode")
     for k, v in argv_setting.items():
         if v is not None:
             setting[mode][k] = v
