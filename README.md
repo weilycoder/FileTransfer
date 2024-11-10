@@ -59,3 +59,7 @@ pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/
 项目文件没有特殊声明的，使用 [SATA](https://github.com/zTrix/sata-license) 许可证，如果你使用了我的项目并觉得它有用，请为我点赞。
 
 SATA 基于 MIT 许可证，允许你在保留原始版权通知和许可条款的前提下，自由地使用、复制、修改、合并、出版发行、散布、再授权和/或销售软件及其副本。
+
+### `full` 类 `pyz` 文件的额外声明
+
+标有 `full` 的 `pyz` 打包文件，包括编译的 `exe` 文件，均包含 Python 第三方库 `tomlkit`，后者并不是我所创作，其[许可证](https://github.com/python-poetry/tomlkit/blob/master/LICENSE)是 MIT 许可证。
