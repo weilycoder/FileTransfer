@@ -45,8 +45,10 @@ optional arguments:
 项目上传了 Test PyPI，你可以运行以下命令下载最新版，或者从 Release 页面获取。
 
 ```bash
-pip install -i https://test.pypi.org/simple/ weily-FileTransfer
+pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ weily-FileTransfer
 ```
+
+其中，`https://pypi.org/simple/` 可以换成你常用的 PyPI 镜像源。
 
 ## Bugs
 
